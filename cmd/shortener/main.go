@@ -15,7 +15,7 @@ func getURLMapKey() string {
 
 func URLShortener(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
-		http.Error(res, "Not a POST requests", http.StatusMethodNotAllowed)
+		http.Error(res, "Not a POST requests", http.StatusBadRequest)
 		return
 	}
 
@@ -36,7 +36,7 @@ func URLShortener(res http.ResponseWriter, req *http.Request) {
 
 func GetTrueURL(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
-		http.Error(res, "Not a GET requests", http.StatusMethodNotAllowed)
+		http.Error(res, "Not a GET requests", http.StatusBadRequest)
 		return
 	}
 
@@ -50,7 +50,7 @@ func GetTrueURL(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	http.Redirect(res, req, trueURL, http.StatusBadRequest)
+	http.Redirect(res, req, trueURL, http.StatusTemporaryRedirect)
 }
 
 func main() {

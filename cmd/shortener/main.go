@@ -7,13 +7,13 @@ import (
 	"strings"
 )
 
-var UrlMap map[string]string
+var URLMap map[string]string
 
-func getUrlMapKey() string {
-	return "shorturl" + strconv.Itoa(len(UrlMap))
+func getURLMapKey() string {
+	return "shorturl" + strconv.Itoa(len(URLMap))
 }
 
-func UrlShortener(res http.ResponseWriter, req *http.Request) {
+func URLShortener(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(res, "Not a POST requests", http.StatusMethodNotAllowed)
 		return
@@ -26,8 +26,8 @@ func UrlShortener(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	urlKey := getUrlMapKey()
-	UrlMap[urlKey] = string(body)
+	urlKey := getURLMapKey()
+	URLMap[urlKey] = string(body)
 
 	res.Header().Set("content-type", "text/plain")
 	res.WriteHeader(201)
@@ -43,7 +43,7 @@ func GetTrueURL(res http.ResponseWriter, req *http.Request) {
 	pathSplitted := strings.Split(req.URL.Path, "/")
 	id := pathSplitted[len(pathSplitted)-1]
 
-	trueURL, ok := UrlMap[id]
+	trueURL, ok := URLMap[id]
 
 	if !ok {
 		http.Error(res, "Not found", http.StatusNotFound)
@@ -54,10 +54,10 @@ func GetTrueURL(res http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	UrlMap = make(map[string]string)
+	URLMap = make(map[string]string)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc(`/`, UrlShortener)
+	mux.HandleFunc(`/`, URLShortener)
 	mux.HandleFunc(`/{id}`, GetTrueURL)
 
 	err := http.ListenAndServe(`:8080`, mux)

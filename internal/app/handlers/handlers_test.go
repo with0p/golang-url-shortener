@@ -55,6 +55,8 @@ func TestGetTrueURL(t *testing.T) {
 			GetTrueURL(w, request)
 
 			res := w.Result()
+			defer res.Body.Close()
+
 			assert.Equal(t, tt.args.status, res.StatusCode)
 
 			// if res.StatusCode == 307 {

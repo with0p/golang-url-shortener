@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	handlers "github.com/with0p/golang-url-shortener.git/internal/app/handlers"
+	"github.com/with0p/golang-url-shortener.git/internal/app/handlers"
 )
 
 func main() {

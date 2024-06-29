@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	storage "github.com/with0p/golang-url-shortener.git/internal/app/storage"
+	"github.com/with0p/golang-url-shortener.git/internal/app/storage"
 )
 
 func URLShortener(res http.ResponseWriter, req *http.Request) {

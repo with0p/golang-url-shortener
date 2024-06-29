@@ -1,17 +1,14 @@
-package main
+package handlers
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
+
+	storage "github.com/with0p/golang-url-shortener.git/internal/app/storage"
 )
-
-var URLMap map[string]string
-
-func getURLMapKey() string {
-	return "shorturl" + strconv.Itoa(len(URLMap))
-}
 
 func URLShortener(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
@@ -19,6 +16,7 @@ func URLShortener(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	defer req.Body.Close()
 	body, err := io.ReadAll(req.Body)
 
 	if err != nil {
@@ -26,8 +24,10 @@ func URLShortener(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	urlKey := getURLMapKey()
-	URLMap[urlKey] = string(body)
+	urlKey := GenerateShortURL(body)
+
+	storageInstance := storage.GetURLMap()
+	storageInstance.Set(urlKey, string(body))
 
 	res.Header().Set("content-type", "text/plain")
 	res.WriteHeader(201)
@@ -43,7 +43,7 @@ func GetTrueURL(res http.ResponseWriter, req *http.Request) {
 	pathSplitted := strings.Split(req.URL.Path, "/")
 	id := pathSplitted[len(pathSplitted)-1]
 
-	trueURL, ok := URLMap[id]
+	trueURL, ok := storage.GetURLMap().Get(id)
 
 	if !ok {
 		http.Error(res, "Not found", http.StatusNotFound)
@@ -53,16 +53,9 @@ func GetTrueURL(res http.ResponseWriter, req *http.Request) {
 	http.Redirect(res, req, trueURL, http.StatusTemporaryRedirect)
 }
 
-func main() {
-	URLMap = make(map[string]string)
-
-	mux := http.NewServeMux()
-	mux.HandleFunc(`/`, URLShortener)
-	mux.HandleFunc(`/{id}`, GetTrueURL)
-
-	err := http.ListenAndServe(`:8080`, mux)
-	if err != nil {
-		panic(err)
-	}
-
+func GenerateShortURL(fullURLByte []byte) string {
+	hash := md5.New()
+	hash.Write(fullURLByte)
+	hashBytes := hash.Sum(nil)
+	return hex.EncodeToString(hashBytes)[:8]
 }

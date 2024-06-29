@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/with0p/golang-url-shortener.git/internal/app/storage"
+	"github.com/with0p/golang-url-shortener.git/cmd/shortener/storage"
 )
 
 func TestGetTrueURL(t *testing.T) {

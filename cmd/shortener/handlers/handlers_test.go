@@ -207,6 +207,8 @@ func TestURLShortener(t *testing.T) {
 		testStorage := storage.GetURLMap()
 
 		response1 := getPostRequestResponse(doubleRequestTest.testData.method, doubleRequestTest.testData.requestBody)
+		defer response1.Body.Close()
+
 		storageValueFirstRead, _ := testStorage.Get(doubleRequestTest.expectedStorageKey)
 
 		assert.Equal(t, doubleRequestTest.expectedStatusCode, response1.StatusCode)
@@ -214,6 +216,8 @@ func TestURLShortener(t *testing.T) {
 		assert.Equal(t, testStorage.GetStorageSize(), 1)
 
 		response2 := getPostRequestResponse(doubleRequestTest.testData.method, doubleRequestTest.testData.requestBody)
+		defer response2.Body.Close()
+
 		storageValueSecondRead, _ := testStorage.Get(doubleRequestTest.expectedStorageKey)
 
 		assert.Equal(t, doubleRequestTest.expectedStatusCode, response2.StatusCode)
@@ -228,8 +232,5 @@ func getPostRequestResponse(method string, body string) *http.Response {
 	w := httptest.NewRecorder()
 	URLShortener(w, request)
 
-	res := w.Result()
-	defer res.Body.Close()
-
-	return res
+	return w.Result()
 }

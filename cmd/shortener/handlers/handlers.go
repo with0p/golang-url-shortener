@@ -17,11 +17,6 @@ func URLShortener(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if req.Header.Get("content-type") != "text/plain" {
-		http.Error(res, "Wrong content type", http.StatusBadRequest)
-		return
-	}
-
 	defer req.Body.Close()
 	body, bodyReadError := io.ReadAll(req.Body)
 	if bodyReadError != nil {

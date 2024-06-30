@@ -1,44 +1,34 @@
 package storage
 
-type URLStorage map[string]string
+type URLStorageMap map[string]string
+type URLStorage struct {
+	urlMap URLStorageMap
+}
 
-var URLMapStorage URLStorage
 var URLMap *URLStorage
 
 func (storage *URLStorage) Set(key string, value string) {
-	(*storage)[key] = value
+	storage.urlMap[key] = value
 }
 
 func (storage *URLStorage) Get(key string) (string, bool) {
-	value, ok := (*storage)[key]
+	value, ok := storage.urlMap[key]
 	return value, ok
 }
 
+func (storage *URLStorage) GetStorageSize() int {
+	return len(storage.urlMap)
+}
+
 func GetURLMap() *URLStorage {
-	if URLMapStorage == nil {
+	if URLMap == nil {
 		InitMap()
 	}
-	return &URLMapStorage
+	return URLMap
 }
 
 func InitMap() {
-	URLMapStorage = make(map[string]string)
+	URLMap = &URLStorage{
+		urlMap: map[string]string{},
+	}
 }
-
-// type Storage struct {
-// 	data map[string]string
-// }
-
-// func NewStorage(initialData map[string]string) *Storage {
-// 	return &Storage{
-// 		data: initialData,
-// 	}
-// }
-
-// func (s *Storage) GetItem(key string) string {
-// 	return s.data[key]
-// }
-
-// func (s *Storage) SetItem(key, value string) {
-// 	s.data[key] = value
-// }

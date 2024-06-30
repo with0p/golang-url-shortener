@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/with0p/golang-url-shortener.git/cmd/shortener/storage"
@@ -16,11 +17,21 @@ func URLShortener(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	defer req.Body.Close()
-	body, err := io.ReadAll(req.Body)
+	if req.Header.Get("content-type") != "text/plain" {
+		http.Error(res, "Wrong content type", http.StatusBadRequest)
+		return
+	}
 
-	if err != nil {
-		res.Write([]byte(err.Error()))
+	defer req.Body.Close()
+	body, bodyReadError := io.ReadAll(req.Body)
+	if bodyReadError != nil {
+		http.Error(res, bodyReadError.Error(), http.StatusBadRequest)
+		return
+	}
+
+	_, urlParseError := url.ParseRequestURI((string(body)))
+	if urlParseError != nil {
+		http.Error(res, urlParseError.Error(), http.StatusBadRequest)
 		return
 	}
 

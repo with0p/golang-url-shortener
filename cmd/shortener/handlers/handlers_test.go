@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/with0p/golang-url-shortener.git/cmd/shortener/storage"
 )
@@ -63,11 +64,13 @@ func TestGetTrueURL(t *testing.T) {
 				endpoint: "/shorturl0",
 			},
 			expectedData: expectedData{
-				status:         http.StatusBadRequest,
+				status:         http.StatusMethodNotAllowed,
 				locationHeader: "",
 			},
 		},
 	}
+
+	router := ServerRouter()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -77,11 +80,7 @@ func TestGetTrueURL(t *testing.T) {
 				storage.GetURLMap().Set(tt.testData.shortURL, tt.testData.trueURL)
 			}
 
-			request := httptest.NewRequest(tt.testData.method, tt.testData.endpoint, nil)
-			w := httptest.NewRecorder()
-			GetTrueURL(w, request)
-
-			res := w.Result()
+			res := makeRequest(tt.testData.method, tt.testData.endpoint, nil, router)
 			defer res.Body.Close()
 
 			assert.Equal(t, tt.expectedData.status, res.StatusCode)
@@ -95,7 +94,7 @@ func TestURLShortener(t *testing.T) {
 	type testData struct {
 		method      string
 		contentType string
-		requestBody string
+		requestBody []byte
 	}
 	type expectedData struct {
 		status       int
@@ -113,7 +112,7 @@ func TestURLShortener(t *testing.T) {
 			testData: testData{
 				method:      http.MethodPost,
 				contentType: "text/plain",
-				requestBody: "https://practicum.yandex.kz/",
+				requestBody: []byte("https://practicum.yandex.kz/"),
 			},
 			expectedData: expectedData{
 				responseBody: "http://localhost:8080/" + GenerateShortURL([]byte("https://practicum.yandex.kz/")),
@@ -126,11 +125,11 @@ func TestURLShortener(t *testing.T) {
 			testData: testData{
 				method:      http.MethodGet,
 				contentType: "text/plain",
-				requestBody: "https://practicum.yandex.kz/",
+				requestBody: []byte("https://practicum.yandex.kz/"),
 			},
 			expectedData: expectedData{
 				responseBody: "",
-				status:       http.StatusBadRequest,
+				status:       http.StatusMethodNotAllowed,
 				contentType:  "text/plain",
 			},
 		},
@@ -139,7 +138,7 @@ func TestURLShortener(t *testing.T) {
 			testData: testData{
 				method:      http.MethodPost,
 				contentType: "text/plain",
-				requestBody: "",
+				requestBody: nil,
 			},
 			expectedData: expectedData{
 				responseBody: "",
@@ -152,7 +151,7 @@ func TestURLShortener(t *testing.T) {
 			testData: testData{
 				method:      http.MethodPost,
 				contentType: "text/plain",
-				requestBody: "httpspracticum.yandex.kz/",
+				requestBody: []byte("httpspracticum.yandex.kz/"),
 			},
 			expectedData: expectedData{
 				responseBody: "",
@@ -161,18 +160,16 @@ func TestURLShortener(t *testing.T) {
 			},
 		},
 	}
+
+	router := ServerRouter()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage.InitMap()
 
-			request := httptest.NewRequest(tt.testData.method, "/", bytes.NewReader([]byte(tt.testData.requestBody)))
-			request.Header.Set("content-type", tt.testData.contentType)
-			w := httptest.NewRecorder()
-			URLShortener(w, request)
-
-			res := w.Result()
-
+			res := makeRequest(tt.testData.method, "/", tt.testData.requestBody, router)
 			defer res.Body.Close()
+
 			body, _ := io.ReadAll(res.Body)
 			assert.Equal(t, tt.expectedData.status, res.StatusCode)
 
@@ -195,7 +192,7 @@ func TestURLShortener(t *testing.T) {
 		testData: testData{
 			method:      http.MethodPost,
 			contentType: "text/plain",
-			requestBody: "https://practicum.yandex.kz/",
+			requestBody: []byte("https://practicum.yandex.kz/"),
 		},
 		expectedStorageKey:   GenerateShortURL([]byte("https://practicum.yandex.kz/")),
 		expectedStorageValue: "https://practicum.yandex.kz/",
@@ -206,7 +203,7 @@ func TestURLShortener(t *testing.T) {
 		storage.InitMap()
 		testStorage := storage.GetURLMap()
 
-		response1 := getPostRequestResponse(doubleRequestTest.testData.method, doubleRequestTest.testData.requestBody)
+		response1 := makeRequest(doubleRequestTest.testData.method, "/", doubleRequestTest.testData.requestBody, router)
 		defer response1.Body.Close()
 
 		storageValueFirstRead, _ := testStorage.Get(doubleRequestTest.expectedStorageKey)
@@ -215,7 +212,7 @@ func TestURLShortener(t *testing.T) {
 		assert.Equal(t, doubleRequestTest.expectedStorageValue, storageValueFirstRead)
 		assert.Equal(t, testStorage.GetStorageSize(), 1)
 
-		response2 := getPostRequestResponse(doubleRequestTest.testData.method, doubleRequestTest.testData.requestBody)
+		response2 := makeRequest(doubleRequestTest.testData.method, "/", doubleRequestTest.testData.requestBody, router)
 		defer response2.Body.Close()
 
 		storageValueSecondRead, _ := testStorage.Get(doubleRequestTest.expectedStorageKey)
@@ -226,11 +223,11 @@ func TestURLShortener(t *testing.T) {
 	})
 }
 
-func getPostRequestResponse(method string, body string) *http.Response {
-	request := httptest.NewRequest(method, "/", bytes.NewReader([]byte(body)))
+func makeRequest(method string, path string, body []byte, router chi.Router) *http.Response {
+	request := httptest.NewRequest(method, path, bytes.NewReader(body))
 	request.Header.Set("content-type", "text/plain")
 	w := httptest.NewRecorder()
-	URLShortener(w, request)
+	router.ServeHTTP(w, request)
 
 	return w.Result()
 }

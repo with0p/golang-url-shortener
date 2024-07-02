@@ -6,14 +6,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/with0p/golang-url-shortener.git/cmd/shortener/storage"
 )
 
 func URLShortener(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
-		http.Error(res, "Not a POST requests", http.StatusBadRequest)
+		http.Error(res, "Not a POST requests", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -42,13 +42,11 @@ func URLShortener(res http.ResponseWriter, req *http.Request) {
 
 func GetTrueURL(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
-		http.Error(res, "Not a GET requests", http.StatusBadRequest)
+		http.Error(res, "Not a GET requests", http.StatusMethodNotAllowed)
 		return
 	}
 
-	pathSplitted := strings.Split(req.URL.Path, "/")
-	id := pathSplitted[len(pathSplitted)-1]
-
+	id := chi.URLParam(req, "id")
 	trueURL, ok := storage.GetURLMap().Get(id)
 
 	if !ok {

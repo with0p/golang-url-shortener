@@ -7,13 +7,8 @@ import (
 )
 
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc(`/`, handlers.URLShortener)
-	mux.HandleFunc(`/{id}`, handlers.GetTrueURL)
-
-	err := http.ListenAndServe(`:8080`, mux)
+	err := http.ListenAndServe(":8080", handlers.ServerRouter())
 	if err != nil {
 		panic(err)
 	}
-
 }

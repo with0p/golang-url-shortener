@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/with0p/golang-url-shortener.git/cmd/shortener/config"
 	"github.com/with0p/golang-url-shortener.git/cmd/shortener/storage"
 )
 
@@ -71,6 +72,7 @@ func TestGetTrueURL(t *testing.T) {
 	}
 
 	router := ServerRouter()
+	config.ParseCMDFlags()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -115,7 +117,7 @@ func TestURLShortener(t *testing.T) {
 				requestBody: []byte("https://practicum.yandex.kz/"),
 			},
 			expectedData: expectedData{
-				responseBody: "http://localhost:8080/" + GenerateShortURL([]byte("https://practicum.yandex.kz/")),
+				responseBody: "http://" + config.CMDFlags.ShortURL + "/" + GenerateShortURL([]byte("https://practicum.yandex.kz/")),
 				status:       http.StatusCreated,
 				contentType:  "text/plain",
 			},
@@ -162,7 +164,7 @@ func TestURLShortener(t *testing.T) {
 	}
 
 	router := ServerRouter()
-
+	// config.ParseCMDFlags()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage.InitMap()

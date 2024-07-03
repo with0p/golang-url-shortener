@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/with0p/golang-url-shortener.git/cmd/shortener/config"
 	"github.com/with0p/golang-url-shortener.git/cmd/shortener/storage"
 )
 
@@ -37,7 +38,7 @@ func URLShortener(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("content-type", "text/plain")
 	res.WriteHeader(201)
-	res.Write([]byte("http://localhost:8080/" + urlKey))
+	res.Write([]byte("http://" + config.CMDFlags.ShortURL + "/" + urlKey))
 }
 
 func GetTrueURL(res http.ResponseWriter, req *http.Request) {
@@ -48,7 +49,6 @@ func GetTrueURL(res http.ResponseWriter, req *http.Request) {
 
 	id := chi.URLParam(req, "id")
 	trueURL, ok := storage.GetURLMap().Get(id)
-
 	if !ok {
 		http.Error(res, "Not found", http.StatusNotFound)
 		return

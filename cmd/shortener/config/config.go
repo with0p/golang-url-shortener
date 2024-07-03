@@ -11,6 +11,6 @@ var CMDFlags struct {
 
 func ParseCMDFlags() {
 	flag.StringVar(&CMDFlags.BaseURL, "a", "localhost:8080", "base URL")
-	flag.StringVar(&CMDFlags.ShortURL, "b", "localhost:8080", "short URL")
+	flag.StringVar(&CMDFlags.ShortURL, "b", "localhost:8888", "short URL")
 	flag.Parse()
 }

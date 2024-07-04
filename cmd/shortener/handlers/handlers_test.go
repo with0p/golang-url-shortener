@@ -117,7 +117,7 @@ func TestURLShortener(t *testing.T) {
 				requestBody: []byte("https://practicum.yandex.kz/"),
 			},
 			expectedData: expectedData{
-				responseBody: "http://" + config.CMDFlags.ShortURL + "/" + GenerateShortURL([]byte("https://practicum.yandex.kz/")),
+				responseBody: config.CMDFlags.ShortURL + "/" + GenerateShortURL([]byte("https://practicum.yandex.kz/")),
 				status:       http.StatusCreated,
 				contentType:  "text/plain",
 			},

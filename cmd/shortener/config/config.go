@@ -10,9 +10,9 @@ var CMDFlags struct {
 	ShortURL string
 }
 
-const URL_HOST = "localhost"
-const BASE_PORT = "8080"
-const SHORT_PORT = "8888"
+const defaultHOST = "localhost"
+const defaultBasePort = "8080"
+const defaultShortPort = "8888"
 
 func ParseCMDFlags() {
 	var BaseURL string
@@ -22,8 +22,8 @@ func ParseCMDFlags() {
 	flag.StringVar(&ShortURL, "b", "http://localhost:8888", "short URL")
 	flag.Parse()
 
-	CMDFlags.BaseURL = URLParseHelper(BaseURL, BASE_PORT)
-	CMDFlags.ShortURL = URLParseHelper(ShortURL, SHORT_PORT)
+	CMDFlags.BaseURL = URLParseHelper(BaseURL, defaultBasePort)
+	CMDFlags.ShortURL = URLParseHelper(ShortURL, defaultShortPort)
 }
 
 func URLParseHelper(str string, defaultPort string) string {
@@ -40,7 +40,7 @@ func URLParseHelper(str string, defaultPort string) string {
 
 	host := parsedURL.Hostname()
 	if host == "" {
-		host = defaultPort
+		host = defaultHOST
 	}
 
 	return host + ":" + port

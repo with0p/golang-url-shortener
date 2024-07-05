@@ -38,7 +38,7 @@ func URLShortener(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("content-type", "text/plain")
 	res.WriteHeader(201)
-	res.Write([]byte(config.CMDFlags.ShortURL + "/" + urlKey))
+	res.Write([]byte(config.Config.ShortURL + "/" + urlKey))
 }
 
 func GetTrueURL(res http.ResponseWriter, req *http.Request) {

@@ -8,11 +8,11 @@ import (
 )
 
 func main() {
-	config.ParseCMDFlags()
+	config.ParseConfig()
 
 	router := handlers.ServerRouter()
 
-	err1 := http.ListenAndServe(config.CMDFlags.BaseURL, router)
+	err1 := http.ListenAndServe(config.Config.BaseURL, router)
 	if err1 != nil {
 		panic(err1)
 	}

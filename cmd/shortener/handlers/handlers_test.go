@@ -72,7 +72,7 @@ func TestGetTrueURL(t *testing.T) {
 	}
 
 	router := ServerRouter()
-	config.ParseCMDFlags()
+	config.ParseConfig()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -117,7 +117,7 @@ func TestURLShortener(t *testing.T) {
 				requestBody: []byte("https://practicum.yandex.kz/"),
 			},
 			expectedData: expectedData{
-				responseBody: config.CMDFlags.ShortURL + "/" + GenerateShortURL([]byte("https://practicum.yandex.kz/")),
+				responseBody: config.Config.ShortURL + "/" + GenerateShortURL([]byte("https://practicum.yandex.kz/")),
 				status:       http.StatusCreated,
 				contentType:  "text/plain",
 			},
@@ -164,7 +164,6 @@ func TestURLShortener(t *testing.T) {
 	}
 
 	router := ServerRouter()
-	// config.ParseCMDFlags()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage.InitMap()

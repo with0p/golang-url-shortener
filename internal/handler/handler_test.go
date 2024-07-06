@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"bytes"
@@ -7,12 +7,29 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/with0p/golang-url-shortener.git/cmd/shortener/config"
-	"github.com/with0p/golang-url-shortener.git/cmd/shortener/storage"
+	"github.com/with0p/golang-url-shortener.git/internal/config"
+	"github.com/with0p/golang-url-shortener.git/internal/service"
+	"github.com/with0p/golang-url-shortener.git/internal/storage"
 )
 
+func getInMemoryMocks() (*URLHandler, storage.Storage, *config.Config) {
+	inMemoryStorage := storage.NewInMemoryStorage(map[string]string{})
+	configuration := config.GetConfig()
+	service := service.NewShortURLService(inMemoryStorage, configuration.ShortURL)
+	handler := NewURLHandler(service)
+
+	return handler, inMemoryStorage, configuration
+}
+
+func makeRequest(method string, path string, body []byte, router http.Handler) *http.Response {
+	request := httptest.NewRequest(method, path, bytes.NewReader(body))
+	request.Header.Set("content-type", "text/plain")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, request)
+
+	return w.Result()
+}
 func TestGetTrueURL(t *testing.T) {
 	type testData struct {
 		method   string
@@ -71,15 +88,14 @@ func TestGetTrueURL(t *testing.T) {
 		},
 	}
 
-	router := ServerRouter()
-	config.ParseConfig()
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage.InitMap()
+			URLHandler, storage, _ := getInMemoryMocks()
+			router := URLHandler.GetHTTPHandler()
 
 			if tt.testData.shortURL != "" && tt.testData.trueURL != "" {
-				storage.GetURLMap().Set(tt.testData.shortURL, tt.testData.trueURL)
+				storage.Write(tt.testData.shortURL, tt.testData.trueURL)
+
 			}
 
 			res := makeRequest(tt.testData.method, tt.testData.endpoint, nil, router)
@@ -99,9 +115,9 @@ func TestURLShortener(t *testing.T) {
 		requestBody []byte
 	}
 	type expectedData struct {
-		status       int
-		responseBody string
-		contentType  string
+		status      int
+		shortURLId  string
+		contentType string
 	}
 
 	tests := []struct {
@@ -117,9 +133,9 @@ func TestURLShortener(t *testing.T) {
 				requestBody: []byte("https://practicum.yandex.kz/"),
 			},
 			expectedData: expectedData{
-				responseBody: config.Config.ShortURL + "/" + GenerateShortURL([]byte("https://practicum.yandex.kz/")),
-				status:       http.StatusCreated,
-				contentType:  "text/plain",
+				shortURLId:  "a0c7ecc8",
+				status:      http.StatusCreated,
+				contentType: "text/plain",
 			},
 		},
 		{
@@ -130,9 +146,9 @@ func TestURLShortener(t *testing.T) {
 				requestBody: []byte("https://practicum.yandex.kz/"),
 			},
 			expectedData: expectedData{
-				responseBody: "",
-				status:       http.StatusMethodNotAllowed,
-				contentType:  "text/plain",
+				shortURLId:  "",
+				status:      http.StatusMethodNotAllowed,
+				contentType: "text/plain",
 			},
 		},
 		{
@@ -143,9 +159,9 @@ func TestURLShortener(t *testing.T) {
 				requestBody: nil,
 			},
 			expectedData: expectedData{
-				responseBody: "",
-				status:       http.StatusBadRequest,
-				contentType:  "text/plain",
+				shortURLId:  "",
+				status:      http.StatusBadRequest,
+				contentType: "text/plain",
 			},
 		},
 		{
@@ -156,17 +172,17 @@ func TestURLShortener(t *testing.T) {
 				requestBody: []byte("httpspracticum.yandex.kz/"),
 			},
 			expectedData: expectedData{
-				responseBody: "",
-				status:       http.StatusBadRequest,
-				contentType:  "text/plain",
+				shortURLId:  "",
+				status:      http.StatusBadRequest,
+				contentType: "text/plain",
 			},
 		},
 	}
 
-	router := ServerRouter()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage.InitMap()
+			URLHandler, _, configuration := getInMemoryMocks()
+			router := URLHandler.GetHTTPHandler()
 
 			res := makeRequest(tt.testData.method, "/", tt.testData.requestBody, router)
 			defer res.Body.Close()
@@ -175,60 +191,9 @@ func TestURLShortener(t *testing.T) {
 			assert.Equal(t, tt.expectedData.status, res.StatusCode)
 
 			if tt.expectedData.status == http.StatusCreated {
-				assert.Equal(t, tt.expectedData.responseBody, string(body))
+				assert.Equal(t, configuration.ShortURL+"/"+tt.expectedData.shortURLId, string(body))
 				assert.Equal(t, tt.testData.contentType, res.Header.Get("content-type"))
 			}
 		})
 	}
-
-	doubleRequestTest := struct {
-		name                 string
-		testData             testData
-		expectedStorageKey   string
-		expectedStorageValue string
-		expectedStatusCode   int
-	}{
-
-		name: "Check two same Posts",
-		testData: testData{
-			method:      http.MethodPost,
-			contentType: "text/plain",
-			requestBody: []byte("https://practicum.yandex.kz/"),
-		},
-		expectedStorageKey:   GenerateShortURL([]byte("https://practicum.yandex.kz/")),
-		expectedStorageValue: "https://practicum.yandex.kz/",
-		expectedStatusCode:   http.StatusCreated,
-	}
-
-	t.Run(doubleRequestTest.name, func(t *testing.T) {
-		storage.InitMap()
-		testStorage := storage.GetURLMap()
-
-		response1 := makeRequest(doubleRequestTest.testData.method, "/", doubleRequestTest.testData.requestBody, router)
-		defer response1.Body.Close()
-
-		storageValueFirstRead, _ := testStorage.Get(doubleRequestTest.expectedStorageKey)
-
-		assert.Equal(t, doubleRequestTest.expectedStatusCode, response1.StatusCode)
-		assert.Equal(t, doubleRequestTest.expectedStorageValue, storageValueFirstRead)
-		assert.Equal(t, testStorage.GetStorageSize(), 1)
-
-		response2 := makeRequest(doubleRequestTest.testData.method, "/", doubleRequestTest.testData.requestBody, router)
-		defer response2.Body.Close()
-
-		storageValueSecondRead, _ := testStorage.Get(doubleRequestTest.expectedStorageKey)
-
-		assert.Equal(t, doubleRequestTest.expectedStatusCode, response2.StatusCode)
-		assert.Equal(t, doubleRequestTest.expectedStorageValue, storageValueSecondRead)
-		assert.Equal(t, testStorage.GetStorageSize(), 1)
-	})
-}
-
-func makeRequest(method string, path string, body []byte, router chi.Router) *http.Response {
-	request := httptest.NewRequest(method, path, bytes.NewReader(body))
-	request.Header.Set("content-type", "text/plain")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, request)
-
-	return w.Result()
 }

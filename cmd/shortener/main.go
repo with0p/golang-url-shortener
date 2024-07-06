@@ -1,20 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/with0p/golang-url-shortener.git/cmd/shortener/config"
-	"github.com/with0p/golang-url-shortener.git/cmd/shortener/handlers"
+	"github.com/with0p/golang-url-shortener.git/internal/app/initializer"
 )
 
 func main() {
-	config.ParseConfig()
+	handler, config := initializer.InitWithInMemoкyStorage()
 
-	router := handlers.ServerRouter()
+	fmt.Println("Run on " + config.BaseURL)
 
-	err1 := http.ListenAndServe(config.Config.BaseURL, router)
-	if err1 != nil {
-		panic(err1)
+	err := http.ListenAndServe(config.BaseURL, handler.GetHTTPHandler())
+	if err != nil {
+		panic(err)
 	}
-
 }

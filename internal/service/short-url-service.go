@@ -25,13 +25,13 @@ func (s *ShortURLService) MakeShortURL(trueURL string) (string, error) {
 	_, urlParseError := url.ParseRequestURI(trueURL)
 
 	if urlParseError != nil {
-		return "", errors.New("Not a URL")
+		return "", errors.New("not a URL")
 	}
 
 	shortURLId := GenerateShortURLId([]byte(trueURL))
 
 	if err := s.storage.Write(shortURLId, trueURL); err != nil {
-		return "", errors.New("Could not make URL record")
+		return "", errors.New("could not make URL record")
 	}
 
 	return s.shortURLHost + "/" + shortURLId, nil

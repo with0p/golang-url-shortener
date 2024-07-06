@@ -23,7 +23,7 @@ func (storage *InMemoryStorage) Read(key string) (string, error) {
 	value, ok := storage.urlMap[key]
 
 	if !ok {
-		return "", errors.New("Not found")
+		return "", errors.New("not found")
 	}
 
 	return value, nil

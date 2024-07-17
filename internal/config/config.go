@@ -19,24 +19,23 @@ var configuration *Config
 
 func GetConfig() *Config {
 	if configuration == nil {
-		var BaseURL string
-		var ShortURL string
+		var conf = Config{}
 
-		flag.StringVar(&BaseURL, "a", defaultHost+":"+defaultPort, "base URL")
-		flag.StringVar(&ShortURL, "b", "http://"+defaultHost+":"+defaultPort, "short URL")
+		flag.StringVar(&conf.BaseURL, "a", defaultHost+":"+defaultPort, "base URL")
+		flag.StringVar(&conf.ShortURL, "b", "http://"+defaultHost+":"+defaultPort, "short URL")
 		flag.Parse()
 
 		if envServerAddress := os.Getenv("SERVER_ADDRESS"); envServerAddress != "" {
-			BaseURL = envServerAddress
+			conf.BaseURL = envServerAddress
 		}
 
 		if envBaseURL := os.Getenv("BASE_URL"); envBaseURL != "" {
-			ShortURL = envBaseURL
+			conf.ShortURL = envBaseURL
 		}
 
 		configuration = &Config{
-			BaseURL:  URLParseHelper(BaseURL),
-			ShortURL: "http://" + URLParseHelper(ShortURL),
+			BaseURL:  URLParseHelper(conf.BaseURL),
+			ShortURL: "http://" + URLParseHelper(conf.ShortURL),
 		}
 	}
 

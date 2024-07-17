@@ -8,12 +8,13 @@ import (
 )
 
 func main() {
-	handler, config := initializer.InitWithInMemoкyStorage()
+	handler, config := initializer.InitWithInMemoryStorage()
 
 	fmt.Println("Run on " + config.BaseURL)
 
 	err := http.ListenAndServe(config.BaseURL, handler.GetHTTPHandler())
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
+		return
 	}
 }

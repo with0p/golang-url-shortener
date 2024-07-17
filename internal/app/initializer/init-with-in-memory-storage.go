@@ -6,7 +6,7 @@ import (
 	"github.com/with0p/golang-url-shortener.git/internal/storage"
 )
 
-func InitWithInMemoкyStorage() (*handler.URLHandler, *config.Config) {
+func InitWithInMemoryStorage() (*handler.URLHandler, *config.Config) {
 	InMemoryStorage := storage.NewInMemoryStorage(map[string]string{})
 	return runInit(InMemoryStorage)
 }

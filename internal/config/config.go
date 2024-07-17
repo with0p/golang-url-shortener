@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"net/url"
 	"os"
 )
@@ -44,10 +45,16 @@ func GetConfig() *Config {
 }
 
 func URLParseHelper(str string) string {
-	parsedURL, _ := url.ParseRequestURI(str)
+	parsedURL, err := url.ParseRequestURI(str)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
 	if parsedURL.Host == "" {
-		parsedURL, _ = url.ParseRequestURI("http://" + str)
+		parsedURL, err = url.ParseRequestURI("http://" + str)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
 	}
 
 	port := parsedURL.Port()

@@ -45,7 +45,7 @@ func (handler *URLHandler) DoShortURL(res http.ResponseWriter, req *http.Request
 	}
 
 	res.Header().Set("content-type", "text/plain")
-	res.WriteHeader(201)
+	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte(shortURL))
 }
 
@@ -56,12 +56,6 @@ func (handler *URLHandler) DoGetTrueURL(res http.ResponseWriter, req *http.Reque
 	}
 
 	id := chi.URLParam(req, "id")
-	// id := req.PathValue("id")
-	// trueURL, ok := storage.GetURLMap().Get(id)
-	// if !ok {
-	// 	http.Error(res, "Not found", http.StatusNotFound)
-	// 	return
-	// }
 
 	trueURL, error := handler.service.GetTrueURL(id)
 	if error != nil {

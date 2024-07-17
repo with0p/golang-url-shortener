@@ -28,7 +28,7 @@ func (s *ShortURLService) MakeShortURL(trueURL string) (string, error) {
 		return "", errors.New("not a URL")
 	}
 
-	shortURLId := GenerateShortURLId([]byte(trueURL))
+	shortURLId := generateShortURLId([]byte(trueURL))
 
 	if err := s.storage.Write(shortURLId, trueURL); err != nil {
 		return "", errors.New("could not make URL record")
@@ -41,7 +41,7 @@ func (s *ShortURLService) GetTrueURL(id string) (string, error) {
 	return s.storage.Read(id)
 }
 
-func GenerateShortURLId(fullURLByte []byte) string {
+func generateShortURLId(fullURLByte []byte) string {
 	hash := md5.New()
 	hash.Write(fullURLByte)
 	hashBytes := hash.Sum(nil)

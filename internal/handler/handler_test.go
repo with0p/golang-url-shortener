@@ -250,9 +250,6 @@ func TestShorten(t *testing.T) {
 			body, _ := io.ReadAll(res.Body)
 			assert.Equal(t, tt.expectedData.status, res.StatusCode)
 
-			// var responsePayload ShortenResponce
-			// json.Unmarshal(body, &responsePayload)
-
 			if tt.expectedData.status == http.StatusCreated {
 				assert.Equal(t, tt.expectedData.responsePayload, string(body))
 				assert.Equal(t, tt.testData.contentType, res.Header.Get("content-type"))

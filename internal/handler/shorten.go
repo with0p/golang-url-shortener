@@ -7,7 +7,7 @@ import (
 )
 
 type ShortenRequest struct {
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 type ShortenResponce struct {
@@ -34,7 +34,7 @@ func (handler *URLHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	shortURL, err := handler.service.MakeShortURL(requstPayload.Url)
+	shortURL, err := handler.service.MakeShortURL(requstPayload.URL)
 
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)

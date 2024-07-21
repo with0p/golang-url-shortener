@@ -244,7 +244,7 @@ func TestShorten(t *testing.T) {
 			URLHandler, _ := getInMemoryMocks()
 			router := URLHandler.GetHTTPHandler()
 
-			res := makeRequest(tt.testData.method, "/shorten", []byte(tt.testData.requestPayload), tt.testData.contentType, router)
+			res := makeRequest(tt.testData.method, "/api/shorten", []byte(tt.testData.requestPayload), tt.testData.contentType, router)
 			defer res.Body.Close()
 
 			body, _ := io.ReadAll(res.Body)

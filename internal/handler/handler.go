@@ -21,6 +21,7 @@ func (handler *URLHandler) GetHTTPHandler() http.Handler {
 	mux := chi.NewRouter()
 	mux.Post(`/`, logger.HandleWithLogging(handler.DoShortURL))
 	mux.Get(`/{id}`, logger.HandleWithLogging(handler.DoGetTrueURL))
+	mux.Post(`/shorten`, logger.HandleWithLogging(handler.Shorten))
 
 	return mux
 }

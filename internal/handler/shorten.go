@@ -20,6 +20,11 @@ func (handler *URLHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if req.Header.Get("content-type") != "application/json" {
+		http.Error(res, "Not a \"application/json\" content-type", http.StatusBadRequest)
+		return
+	}
+
 	defer req.Body.Close()
 	body, bodyReadError := io.ReadAll(req.Body)
 	if bodyReadError != nil {

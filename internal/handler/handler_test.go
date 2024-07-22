@@ -237,6 +237,45 @@ func TestShorten(t *testing.T) {
 				responsePayload: fmt.Sprintf(`{"result":"%s/a0c7ecc8"}`, configuration.ShortURL),
 			},
 		},
+		{
+			name: "Check wrong content type",
+			testData: testData{
+				method:         http.MethodPost,
+				contentType:    "plain/text",
+				requestPayload: `{"url":"https://practicum.yandex.kz/"}`,
+			},
+			expectedData: expectedData{
+				status:          http.StatusBadRequest,
+				contentType:     "",
+				responsePayload: "",
+			},
+		},
+		{
+			name: "Check wrong payload structure",
+			testData: testData{
+				method:         http.MethodPost,
+				contentType:    "application/json",
+				requestPayload: `{"link":"https://practicum.yandex.kz/"}`,
+			},
+			expectedData: expectedData{
+				status:          http.StatusBadRequest,
+				contentType:     "",
+				responsePayload: "",
+			},
+		},
+		{
+			name: "Check invalid url in payload",
+			testData: testData{
+				method:         http.MethodPost,
+				contentType:    "application/json",
+				requestPayload: `{"link":"httpracticum.yandex.kz/"}`,
+			},
+			expectedData: expectedData{
+				status:          http.StatusBadRequest,
+				contentType:     "",
+				responsePayload: "",
+			},
+		},
 	}
 
 	for _, tt := range tests {

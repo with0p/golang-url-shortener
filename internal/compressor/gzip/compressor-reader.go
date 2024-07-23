@@ -6,7 +6,7 @@ import (
 )
 
 type CompressorReader struct {
-	reader     io.Reader
+	reader     io.ReadCloser
 	gzipReader *gzip.Reader
 }
 
@@ -28,5 +28,8 @@ func (compressorReader CompressorReader) Read(data []byte) (int, error) {
 }
 
 func (compressorReader CompressorReader) Close() error {
+	if err := compressorReader.reader.Close(); err != nil {
+		return err
+	}
 	return compressorReader.gzipReader.Close()
 }

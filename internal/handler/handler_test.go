@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/with0p/golang-url-shortener.git/internal/config"
 	"github.com/with0p/golang-url-shortener.git/internal/service"
 	"github.com/with0p/golang-url-shortener.git/internal/storage"
@@ -194,7 +195,8 @@ func TestURLShortener(t *testing.T) {
 			res := makeRequest(tt.testData.method, "/", tt.testData.requestBody, tt.testData.contentType, router)
 			defer res.Body.Close()
 
-			body, _ := io.ReadAll(res.Body)
+			body, err := io.ReadAll(res.Body)
+			require.Nil(t, err)
 			assert.Equal(t, tt.expectedData.status, res.StatusCode)
 
 			if tt.expectedData.status == http.StatusCreated {
@@ -286,7 +288,8 @@ func TestShorten(t *testing.T) {
 			res := makeRequest(tt.testData.method, "/api/shorten", []byte(tt.testData.requestPayload), tt.testData.contentType, router)
 			defer res.Body.Close()
 
-			body, _ := io.ReadAll(res.Body)
+			body, err := io.ReadAll(res.Body)
+			require.Nil(t, err)
 			assert.Equal(t, tt.expectedData.status, res.StatusCode)
 
 			if tt.expectedData.status == http.StatusCreated {

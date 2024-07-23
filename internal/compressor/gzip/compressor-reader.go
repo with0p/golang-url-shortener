@@ -10,7 +10,7 @@ type CompressorReader struct {
 	gzipReader *gzip.Reader
 }
 
-func NewCompressorReader(reader io.ReadCloser) (*CompressorReader, error) {
+func newCompressorReader(reader io.ReadCloser) (*CompressorReader, error) {
 	gzipReader, err := gzip.NewReader(reader)
 
 	if err != nil {

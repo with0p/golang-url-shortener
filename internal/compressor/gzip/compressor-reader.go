@@ -27,6 +27,6 @@ func (compressorReader CompressorReader) Read(data []byte) (int, error) {
 	return compressorReader.gzipReader.Read(data)
 }
 
-func (compressorWriter CompressorReader) Close() error {
-	return compressorWriter.gzipReader.Close()
+func (compressorReader CompressorReader) Close() error {
+	return compressorReader.gzipReader.Close()
 }

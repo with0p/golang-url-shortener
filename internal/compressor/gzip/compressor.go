@@ -3,6 +3,8 @@ package compressor
 import (
 	"net/http"
 	"strings"
+
+	"github.com/with0p/golang-url-shortener.git/internal/logger"
 )
 
 func HandleWithGzipCompressor(handler http.HandlerFunc) http.HandlerFunc {
@@ -23,6 +25,7 @@ func HandleWithGzipCompressor(handler http.HandlerFunc) http.HandlerFunc {
 
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
+				logger.LogError(err)
 			}
 
 			r.Body = compressorReader

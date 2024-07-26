@@ -1,20 +1,26 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/with0p/golang-url-shortener.git/internal/app/initializer"
+	"github.com/with0p/golang-url-shortener.git/internal/logger"
 )
 
 func main() {
-	handler, config := initializer.InitWithInMemoryStorage()
+	config := initializer.InitConfig()
+	handler, initError := initializer.InitWithLocalFileStorage(config)
 
-	fmt.Println("Run on " + config.BaseURL)
+	if initError != nil {
+		logger.LogError(initError)
+		return
+	}
+
+	logger.LogInfo("Run on " + config.BaseURL)
 
 	err := http.ListenAndServe(config.BaseURL, handler.GetHTTPHandler())
 	if err != nil {
-		fmt.Println(err.Error())
+		logger.LogError(err)
 		return
 	}
 }

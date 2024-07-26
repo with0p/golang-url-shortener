@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+
+	"github.com/with0p/golang-url-shortener.git/internal/logger"
 )
 
 type ShortenRequest struct {
@@ -29,6 +31,7 @@ func (handler *URLHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 	body, bodyReadError := io.ReadAll(req.Body)
 	if bodyReadError != nil {
 		http.Error(res, bodyReadError.Error(), http.StatusBadRequest)
+		logger.LogError(bodyReadError)
 		return
 	}
 
@@ -36,6 +39,7 @@ func (handler *URLHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 
 	if err := json.Unmarshal(body, &requstPayload); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
+		logger.LogError(err)
 		return
 	}
 
@@ -53,6 +57,7 @@ func (handler *URLHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 	response, err := json.Marshal(responsePayload)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
+		logger.LogError(err)
 		return
 	}
 

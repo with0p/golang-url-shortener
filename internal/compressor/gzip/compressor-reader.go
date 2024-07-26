@@ -3,6 +3,8 @@ package compressor
 import (
 	"compress/gzip"
 	"io"
+
+	"github.com/with0p/golang-url-shortener.git/internal/logger"
 )
 
 type CompressorReader struct {
@@ -14,6 +16,7 @@ func newCompressorReader(reader io.ReadCloser) (*CompressorReader, error) {
 	gzipReader, err := gzip.NewReader(reader)
 
 	if err != nil {
+		logger.LogError(err)
 		return nil, err
 	}
 
@@ -29,6 +32,7 @@ func (compressorReader CompressorReader) Read(data []byte) (int, error) {
 
 func (compressorReader CompressorReader) Close() error {
 	if err := compressorReader.reader.Close(); err != nil {
+		logger.LogError(err)
 		return err
 	}
 	return compressorReader.gzipReader.Close()

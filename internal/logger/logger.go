@@ -33,3 +33,15 @@ func HandleWithLogging(handler http.HandlerFunc) http.HandlerFunc {
 		)
 	}
 }
+
+func LogInfo(text string) {
+	logger.Infoln(
+		"info", text,
+	)
+}
+
+func LogError(err error) {
+	logger.Errorln(
+		"ERROR", err.Error(),
+	)
+}

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/with0p/golang-url-shortener.git/internal/logger"
 	"github.com/with0p/golang-url-shortener.git/internal/middlewares"
 	"github.com/with0p/golang-url-shortener.git/internal/service"
 )
@@ -36,6 +37,7 @@ func (handler *URLHandler) DoShortURL(res http.ResponseWriter, req *http.Request
 	body, bodyReadError := io.ReadAll(req.Body)
 	if bodyReadError != nil {
 		http.Error(res, bodyReadError.Error(), http.StatusBadRequest)
+		logger.LogError(bodyReadError)
 		return
 	}
 

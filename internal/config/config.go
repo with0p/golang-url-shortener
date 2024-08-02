@@ -2,41 +2,49 @@ package config
 
 import (
 	"flag"
-	"fmt"
 	"net/url"
 	"os"
+
+	"github.com/with0p/golang-url-shortener.git/internal/logger"
 )
 
 const defaultHost = "localhost"
 const defaultPort = "8080"
+const defaultFileStoragePath = "internal/storage/local-file/local-storage.json"
 
 type Config struct {
-	BaseURL  string
-	ShortURL string
+	BaseURL         string
+	ShortURL        string
+	FileStoragePath string
 }
 
 var configuration *Config
 
 func GetConfig() *Config {
 	if configuration == nil {
-		var BaseURL string
-		var ShortURL string
+		var conf = Config{}
 
-		flag.StringVar(&BaseURL, "a", defaultHost+":"+defaultPort, "base URL")
-		flag.StringVar(&ShortURL, "b", "http://"+defaultHost+":"+defaultPort, "short URL")
+		flag.StringVar(&conf.BaseURL, "a", defaultHost+":"+defaultPort, "base URL")
+		flag.StringVar(&conf.ShortURL, "b", "http://"+defaultHost+":"+defaultPort, "short URL")
+		flag.StringVar(&conf.FileStoragePath, "f", defaultFileStoragePath, "storage path")
 		flag.Parse()
 
 		if envServerAddress := os.Getenv("SERVER_ADDRESS"); envServerAddress != "" {
-			BaseURL = envServerAddress
+			conf.BaseURL = envServerAddress
 		}
 
 		if envBaseURL := os.Getenv("BASE_URL"); envBaseURL != "" {
-			ShortURL = envBaseURL
+			conf.ShortURL = envBaseURL
+		}
+
+		if envFileStoragePath := os.Getenv("FILE_STORAGE_PATH"); envFileStoragePath != "" {
+			conf.FileStoragePath = envFileStoragePath
 		}
 
 		configuration = &Config{
-			BaseURL:  URLParseHelper(BaseURL),
-			ShortURL: "http://" + URLParseHelper(ShortURL),
+			BaseURL:         URLParseHelper(conf.BaseURL),
+			ShortURL:        "http://" + URLParseHelper(conf.ShortURL),
+			FileStoragePath: conf.FileStoragePath,
 		}
 	}
 
@@ -47,13 +55,13 @@ func GetConfig() *Config {
 func URLParseHelper(str string) string {
 	parsedURL, err := url.ParseRequestURI(str)
 	if err != nil {
-		fmt.Println(err.Error())
+		logger.LogError(err)
 	}
 
 	if parsedURL.Host == "" {
 		parsedURL, err = url.ParseRequestURI("http://" + str)
 		if err != nil {
-			fmt.Println(err.Error())
+			logger.LogError(err)
 		}
 	}
 

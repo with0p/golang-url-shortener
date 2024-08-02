@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/with0p/golang-url-shortener.git/internal/logger"
+	"github.com/with0p/golang-url-shortener.git/internal/middlewares"
 	"github.com/with0p/golang-url-shortener.git/internal/service"
 )
 
@@ -18,8 +20,9 @@ func NewURLHandler(currentService service.Service) *URLHandler {
 
 func (handler *URLHandler) GetHTTPHandler() http.Handler {
 	mux := chi.NewRouter()
-	mux.Post(`/`, handler.DoShortURL)
-	mux.Get(`/{id}`, handler.DoGetTrueURL)
+	mux.Post(`/`, middlewares.UseMiddlewares(handler.DoShortURL))
+	mux.Get(`/{id}`, middlewares.UseMiddlewares(handler.DoGetTrueURL))
+	mux.Post(`/api/shorten`, middlewares.UseMiddlewares(handler.Shorten))
 
 	return mux
 }
@@ -34,6 +37,7 @@ func (handler *URLHandler) DoShortURL(res http.ResponseWriter, req *http.Request
 	body, bodyReadError := io.ReadAll(req.Body)
 	if bodyReadError != nil {
 		http.Error(res, bodyReadError.Error(), http.StatusBadRequest)
+		logger.LogError(bodyReadError)
 		return
 	}
 

@@ -2,17 +2,21 @@ package handler
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/with0p/golang-url-shortener.git/internal/config"
+	"github.com/with0p/golang-url-shortener.git/internal/logger"
 	"github.com/with0p/golang-url-shortener.git/internal/service"
 	"github.com/with0p/golang-url-shortener.git/internal/storage"
+	localFileStorage "github.com/with0p/golang-url-shortener.git/internal/storage/local-file"
 )
 
 func getConfiguration() *config.Config {
@@ -26,6 +30,36 @@ func getInMemoryMocks() (*URLHandler, storage.Storage) {
 	handler := NewURLHandler(service)
 
 	return handler, inMemoryStorage
+}
+
+func getInLocalFileMocks() (*URLHandler, storage.Storage) {
+	configuration := getConfiguration()
+	localFileStorage, _ := localFileStorage.NewLocalFileStorage(configuration.FileStoragePath)
+	service := service.NewShortURLService(localFileStorage, configuration.ShortURL)
+	handler := NewURLHandler(service)
+
+	return handler, localFileStorage
+}
+
+func getMocks() (*URLHandler, storage.Storage) {
+	return getInMemoryMocks()
+}
+
+var db *sql.DB
+
+func getDB() *sql.DB {
+	if db == nil {
+		dbAddress := getConfiguration().DataBaseAddress
+
+		dataBase, dbErr := sql.Open("pgx", dbAddress)
+		if dbErr != nil {
+			logger.LogError(dbErr)
+		}
+		defer dataBase.Close()
+		db = dataBase
+	}
+
+	return db
 }
 
 func makeRequest(method string, path string, body []byte, contentType string, router http.Handler) *http.Response {
@@ -96,8 +130,9 @@ func TestGetTrueURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			URLHandler, storage := getInMemoryMocks()
-			router := URLHandler.GetHTTPHandler()
+			URLHandler, storage := getMocks()
+
+			router := URLHandler.GetHTTPHandler(getDB())
 
 			if tt.testData.shortURL != "" && tt.testData.trueURL != "" {
 				storage.Write(tt.testData.shortURL, tt.testData.trueURL)
@@ -187,10 +222,10 @@ func TestURLShortener(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			URLHandler, _ := getInMemoryMocks()
+			URLHandler, _ := getMocks()
 			configuration := getConfiguration()
 
-			router := URLHandler.GetHTTPHandler()
+			router := URLHandler.GetHTTPHandler(getDB())
 
 			res := makeRequest(tt.testData.method, "/", tt.testData.requestBody, tt.testData.contentType, router)
 			defer res.Body.Close()
@@ -282,8 +317,9 @@ func TestShorten(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			URLHandler, _ := getInMemoryMocks()
-			router := URLHandler.GetHTTPHandler()
+			URLHandler, _ := getMocks()
+
+			router := URLHandler.GetHTTPHandler(getDB())
 
 			res := makeRequest(tt.testData.method, "/api/shorten", []byte(tt.testData.requestPayload), tt.testData.contentType, router)
 			defer res.Body.Close()

@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"context"
+	"database/sql"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/with0p/golang-url-shortener.git/internal/logger"
@@ -18,11 +21,12 @@ func NewURLHandler(currentService service.Service) *URLHandler {
 	return &URLHandler{service: currentService}
 }
 
-func (handler *URLHandler) GetHTTPHandler() http.Handler {
+func (handler *URLHandler) GetHTTPHandler(db *sql.DB) http.Handler {
 	mux := chi.NewRouter()
 	mux.Post(`/`, middlewares.UseMiddlewares(handler.DoShortURL))
 	mux.Get(`/{id}`, middlewares.UseMiddlewares(handler.DoGetTrueURL))
 	mux.Post(`/api/shorten`, middlewares.UseMiddlewares(handler.Shorten))
+	mux.Get(`/ping`, getPingDB(db))
 
 	return mux
 }
@@ -67,4 +71,18 @@ func (handler *URLHandler) DoGetTrueURL(res http.ResponseWriter, req *http.Reque
 		return
 	}
 	http.Redirect(res, req, trueURL, http.StatusTemporaryRedirect)
+}
+
+func getPingDB(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		if errCtx := db.PingContext(ctx); errCtx != nil {
+			logger.LogError(errCtx)
+			http.Error(w, errCtx.Error(), http.StatusInternalServerError)
+			return
+		}
+		logger.LogInfo("DB connected")
+		w.Write([]byte("DB connected"))
+	}
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/with0p/golang-url-shortener.git/internal/logger"
 	"github.com/with0p/golang-url-shortener.git/internal/service"
 	"github.com/with0p/golang-url-shortener.git/internal/storage"
-	localFileStorage "github.com/with0p/golang-url-shortener.git/internal/storage/local-file"
 )
 
 func getConfiguration() *config.Config {
@@ -34,7 +33,7 @@ func getInMemoryMocks() (*URLHandler, storage.Storage) {
 
 func getInLocalFileMocks() (*URLHandler, storage.Storage) {
 	configuration := getConfiguration()
-	localFileStorage, _ := localFileStorage.NewLocalFileStorage(configuration.FileStoragePath)
+	localFileStorage, _ := storage.NewLocalFileStorage(configuration.FileStoragePath)
 	service := service.NewShortURLService(localFileStorage, configuration.ShortURL)
 	handler := NewURLHandler(service)
 

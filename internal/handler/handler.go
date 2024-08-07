@@ -26,7 +26,10 @@ func (handler *URLHandler) GetHTTPHandler(db *sql.DB) http.Handler {
 	mux.Post(`/`, middlewares.UseMiddlewares(handler.DoShortURL))
 	mux.Get(`/{id}`, middlewares.UseMiddlewares(handler.DoGetTrueURL))
 	mux.Post(`/api/shorten`, middlewares.UseMiddlewares(handler.Shorten))
-	mux.Get(`/ping`, getPingDB(db))
+
+	if db != nil {
+		mux.Get(`/ping`, getPingDB(db))
+	}
 
 	return mux
 }

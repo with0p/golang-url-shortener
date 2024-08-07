@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/with0p/golang-url-shortener.git/internal/logger"
+	"github.com/with0p/golang-url-shortener.git/internal/storage/local-file"
 )
 
 type LocalFileStorage struct {
@@ -17,7 +18,7 @@ func NewLocalFileStorage(filePath string) (*LocalFileStorage, error) {
 	return &LocalFileStorage{filePath: filePath}, nil
 }
 
-func (storage *LocalFileStorage) Write(key string, value string) error {
+func (storage *LocalFileStorage) Write(shortURLKey string, fullURL string) error {
 	file, err := os.OpenFile(storage.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		logger.LogError(err)
@@ -25,7 +26,7 @@ func (storage *LocalFileStorage) Write(key string, value string) error {
 	}
 	defer file.Close()
 
-	data, err := json.Marshal(NewLocalFileRecord(key, value))
+	data, err := json.Marshal(localfile.NewLocalFileRecord(shortURLKey, fullURL))
 	if err != nil {
 		logger.LogError(err)
 		return err
@@ -37,7 +38,7 @@ func (storage *LocalFileStorage) Write(key string, value string) error {
 	return err
 }
 
-func (storage *LocalFileStorage) Read(key string) (string, error) {
+func (storage *LocalFileStorage) Read(shortURLKey string) (string, error) {
 	file, err := os.OpenFile(storage.filePath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		logger.LogError(err)
@@ -51,13 +52,13 @@ func (storage *LocalFileStorage) Read(key string) (string, error) {
 	}
 	defer file.Close()
 
-	value, ok := fileData[key]
+	fullURL, ok := fileData[shortURLKey]
 
 	if !ok {
 		return "", errors.New("not found")
 	}
 
-	return value, nil
+	return fullURL, nil
 }
 
 func readFileToMap(file *os.File) (map[string]string, error) {
@@ -68,7 +69,7 @@ func readFileToMap(file *os.File) (map[string]string, error) {
 	for scanner.Scan() {
 		data := scanner.Bytes()
 
-		record := LocalFileRecord{}
+		record := localfile.LocalFileRecord{}
 
 		err := json.Unmarshal(data, &record)
 		if err != nil {

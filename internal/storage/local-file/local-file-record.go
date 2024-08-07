@@ -1,4 +1,4 @@
-package storage
+package localfile
 
 import "github.com/google/uuid"
 

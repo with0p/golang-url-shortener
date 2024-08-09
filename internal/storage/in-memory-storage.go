@@ -1,6 +1,10 @@
 package storage
 
-import "errors"
+import (
+	"errors"
+
+	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
+)
 
 type URLStorageMap map[string]string
 
@@ -16,6 +20,14 @@ func NewInMemoryStorage(storageMap URLStorageMap) *InMemoryStorage {
 
 func (storage *InMemoryStorage) Write(shortURLKey string, fullURL string) error {
 	storage.urlMap[shortURLKey] = fullURL
+	return nil
+}
+
+func (storage *InMemoryStorage) WriteBatch(records *[]commontypes.BatchRecord) error {
+	for _, r := range *records {
+		storage.urlMap[r.ShortURLKey] = r.FullURL
+	}
+
 	return nil
 }
 

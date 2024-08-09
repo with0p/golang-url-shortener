@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 
+	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
 	"github.com/with0p/golang-url-shortener.git/internal/logger"
 )
 
@@ -37,6 +38,23 @@ func initTable(db *sql.DB) error {
 
 	logger.LogInfo("Table %s created successfully")
 	return err
+}
+
+func (storage *DBStorage) Read(shortURLKey string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+	SELECT full_url 
+	FROM shortener 
+	WHERE short_url_key = $1;`
+
+	var fullURL string
+	err := storage.db.QueryRowContext(ctx, query, shortURLKey).Scan(&fullURL)
+	if err != nil {
+		return "", err
+	}
+	return fullURL, nil
 }
 
 func (storage *DBStorage) Write(shortURLKey string, fullURL string) error {
@@ -72,19 +90,26 @@ func (storage *DBStorage) Write(shortURLKey string, fullURL string) error {
 	return errInsert
 }
 
-func (storage *DBStorage) Read(shortURLKey string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	query := `
-    SELECT full_url 
-    FROM shortener 
-    WHERE short_url_key = $1;`
-
-	var fullURL string
-	err := storage.db.QueryRowContext(ctx, query, shortURLKey).Scan(&fullURL)
+func (storage *DBStorage) WriteBatch(records *[]commontypes.BatchRecord) error {
+	tr, err := storage.db.Begin()
 	if err != nil {
-		return "", err
+		return err
 	}
-	return fullURL, nil
+
+	for _, r := range *records {
+		ctxInsert, cancelInsert := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancelInsert()
+
+		queryInsert := `
+    INSERT INTO shortener (full_url, short_url_key) 
+    VALUES ($1, $2);`
+
+		_, errInsert := tr.ExecContext(ctxInsert, queryInsert, r.FullURL, r.ShortURLKey)
+		if errInsert != nil {
+			tr.Rollback()
+			return errInsert
+		}
+	}
+
+	return tr.Commit()
 }

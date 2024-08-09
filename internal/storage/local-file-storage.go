@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 
+	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
 	"github.com/with0p/golang-url-shortener.git/internal/logger"
 	"github.com/with0p/golang-url-shortener.git/internal/storage/local-file"
 )
@@ -34,6 +35,31 @@ func (storage *LocalFileStorage) Write(shortURLKey string, fullURL string) error
 	data = append(data, '\n')
 
 	_, err = file.Write(data)
+
+	return err
+}
+
+func (storage *LocalFileStorage) WriteBatch(records *[]commontypes.BatchRecord) error {
+	file, err := os.OpenFile(storage.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		logger.LogError(err)
+		return err
+	}
+	defer file.Close()
+
+	var dataToWrite []byte
+
+	for _, r := range *records {
+		data, err := json.Marshal(localfile.NewLocalFileRecord(r.ShortURLKey, r.FullURL))
+		if err != nil {
+			logger.LogError(err)
+			return err
+		}
+		data = append(data, '\n')
+		dataToWrite = append(dataToWrite, data...)
+	}
+
+	_, err = file.Write(dataToWrite)
 
 	return err
 }

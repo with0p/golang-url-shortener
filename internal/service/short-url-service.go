@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/url"
 
+	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
 	"github.com/with0p/golang-url-shortener.git/internal/storage"
 )
 
@@ -19,6 +20,10 @@ func NewShortURLService(currentStorage storage.Storage, shortURLHost string) *Sh
 		storage:      currentStorage,
 		shortURLHost: shortURLHost,
 	}
+}
+
+func (s *ShortURLService) GetTrueURL(id string) (string, error) {
+	return s.storage.Read(id)
 }
 
 func (s *ShortURLService) MakeShortURL(trueURL string) (string, error) {
@@ -37,8 +42,31 @@ func (s *ShortURLService) MakeShortURL(trueURL string) (string, error) {
 	return s.shortURLHost + "/" + shortURLId, nil
 }
 
-func (s *ShortURLService) GetTrueURL(id string) (string, error) {
-	return s.storage.Read(id)
+func (s *ShortURLService) MakeShortURLBatch(recordsIn *[]commontypes.RecordToBatch) (*[]commontypes.BatchRecord, error) {
+	var batchData []commontypes.BatchRecord
+
+	for _, reqRec := range *recordsIn {
+		_, urlParseError := url.ParseRequestURI(reqRec.FullURL)
+
+		if urlParseError != nil {
+			continue
+		}
+
+		shortURLId := generateShortURLId([]byte(reqRec.FullURL))
+
+		batchData = append(batchData, commontypes.BatchRecord{
+			ID:          reqRec.ID,
+			ShortURLKey: shortURLId,
+			ShortURL:    s.shortURLHost + "/" + shortURLId,
+			FullURL:     reqRec.FullURL,
+		})
+	}
+
+	if err := s.storage.WriteBatch(&batchData); err != nil {
+		return nil, errors.New("could not make Batch URL record")
+	}
+
+	return &batchData, nil
 }
 
 func generateShortURLId(fullURLByte []byte) string {

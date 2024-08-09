@@ -1,6 +1,9 @@
 package storage
 
+import commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
+
 type Storage interface {
-	Write(key string, value string) error
-	Read(key string) (string, error)
+	Read(shortURLKey string) (string, error)
+	Write(shortURLKey string, fullURL string) error
+	WriteBatch(records *[]commontypes.BatchRecord) error
 }

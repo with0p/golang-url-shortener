@@ -106,16 +106,24 @@ func (handler *URLHandler) ShortenBatch(res http.ResponseWriter, req *http.Reque
 	var dataToBatch []commontypes.RecordToBatch
 	for _, r := range requestPayload {
 		dataToBatch = append(dataToBatch, commontypes.RecordToBatch{
-			Id:          r.CorrelationID,
-			OriginalURL: r.OriginalURL,
+			ID:      r.CorrelationID,
+			FullURL: r.OriginalURL,
 		})
 	}
 
-	responsePayload, batchError := handler.service.MakeShortURLBatch(&dataToBatch)
+	responsePayloadData, batchError := handler.service.MakeShortURLBatch(&dataToBatch)
 	if batchError != nil {
 		http.Error(res, batchError.Error(), http.StatusBadRequest)
 		logger.LogError(batchError)
 		return
+	}
+
+	var responsePayload []ShortenBatchResponceRecord
+	for _, r := range *responsePayloadData {
+		responsePayload = append(responsePayload, ShortenBatchResponceRecord{
+			CorrelationID: r.ID,
+			ShortURL:      r.ShortURL,
+		})
 	}
 
 	response, err := json.Marshal(responsePayload)

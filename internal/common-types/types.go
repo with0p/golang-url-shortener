@@ -1,11 +1,13 @@
 package commontypes
 
 type BatchRecord struct {
+	ID          string
 	ShortURLKey string
+	ShortURL    string
 	FullURL     string
 }
 
 type RecordToBatch struct {
-	Id          string
-	OriginalURL string
+	ID      string
+	FullURL string
 }

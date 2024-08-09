@@ -46,17 +46,19 @@ func (s *ShortURLService) MakeShortURLBatch(recordsIn *[]commontypes.RecordToBat
 	var batchData []commontypes.BatchRecord
 
 	for _, reqRec := range *recordsIn {
-		_, urlParseError := url.ParseRequestURI(reqRec.OriginalURL)
+		_, urlParseError := url.ParseRequestURI(reqRec.FullURL)
 
 		if urlParseError != nil {
 			continue
 		}
 
-		shortURLId := generateShortURLId([]byte(reqRec.OriginalURL))
+		shortURLId := generateShortURLId([]byte(reqRec.FullURL))
 
 		batchData = append(batchData, commontypes.BatchRecord{
+			ID:          reqRec.ID,
 			ShortURLKey: shortURLId,
-			FullURL:     reqRec.OriginalURL,
+			ShortURL:    s.shortURLHost + "/" + shortURLId,
+			FullURL:     reqRec.FullURL,
 		})
 	}
 

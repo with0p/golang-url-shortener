@@ -44,7 +44,7 @@ func initTable(db *sql.DB) error {
 	db.ExecContext(ctx, query)
 	logger.LogInfo("Table shortener created successfully")
 
-	tr.ExecContext(ctx, `CREATE UNIQUE INDEX short_url_key_index ON shortener (short_url_key)`)
+	tr.ExecContext(ctx, `CREATE UNIQUE INDEX IF NOT EXISTS short_url_key_index ON shortener (short_url_key)`)
 	logger.LogInfo("Index short_url_key_index created successfully")
 
 	return tr.Commit()

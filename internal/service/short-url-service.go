@@ -6,7 +6,8 @@ import (
 	"errors"
 	"net/url"
 
-	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
+	"github.com/with0p/golang-url-shortener.git/internal/common-types"
+	customerrors "github.com/with0p/golang-url-shortener.git/internal/custom-errors"
 	"github.com/with0p/golang-url-shortener.git/internal/storage"
 )
 
@@ -36,7 +37,10 @@ func (s *ShortURLService) MakeShortURL(trueURL string) (string, error) {
 	shortURLId := generateShortURLId([]byte(trueURL))
 
 	if err := s.storage.Write(shortURLId, trueURL); err != nil {
-		return "", errors.New("could not make URL record")
+		if errors.Is(err, customerrors.ErrUniqueKeyConstrantViolation) {
+			return s.shortURLHost + "/" + shortURLId, err
+		}
+		return "", err
 	}
 
 	return s.shortURLHost + "/" + shortURLId, nil

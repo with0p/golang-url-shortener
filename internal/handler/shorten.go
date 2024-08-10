@@ -2,10 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
 	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
+	customerrors "github.com/with0p/golang-url-shortener.git/internal/custom-errors"
 	"github.com/with0p/golang-url-shortener.git/internal/logger"
 )
 
@@ -54,11 +56,17 @@ func (handler *URLHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	shortURL, err := handler.service.MakeShortURL(requstPayload.URL)
+	statusCode := http.StatusCreated
 
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
+	shortURL, serviceErr := handler.service.MakeShortURL(requstPayload.URL)
+
+	if serviceErr != nil {
+		if errors.Is(serviceErr, customerrors.ErrUniqueKeyConstrantViolation) {
+			statusCode = http.StatusConflict
+		} else {
+			http.Error(res, serviceErr.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	responsePayload := ShortenResponce{
@@ -73,7 +81,7 @@ func (handler *URLHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.Header().Set("content-type", "application/json")
-	res.WriteHeader(http.StatusCreated)
+	res.WriteHeader(statusCode)
 	res.Write(response)
 }
 

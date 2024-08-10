@@ -3,11 +3,13 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	customerrors "github.com/with0p/golang-url-shortener.git/internal/custom-errors"
 	"github.com/with0p/golang-url-shortener.git/internal/logger"
 	"github.com/with0p/golang-url-shortener.git/internal/middlewares"
 	"github.com/with0p/golang-url-shortener.git/internal/service"
@@ -27,10 +29,7 @@ func (handler *URLHandler) GetHTTPHandler(db *sql.DB) http.Handler {
 	mux.Get(`/{id}`, middlewares.UseMiddlewares(handler.DoGetTrueURL))
 	mux.Post(`/api/shorten`, middlewares.UseMiddlewares(handler.Shorten))
 	mux.Post(`/api/shorten/batch`, middlewares.UseMiddlewares(handler.ShortenBatch))
-
-	if db != nil {
-		mux.Get(`/ping`, getPingDB(db))
-	}
+	mux.Get(`/ping`, getPingDB(db))
 
 	return mux
 }
@@ -49,15 +48,21 @@ func (handler *URLHandler) DoShortURL(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	shortURL, err := handler.service.MakeShortURL(string(body))
+	statusCode := http.StatusCreated
 
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
+	shortURL, serviceErr := handler.service.MakeShortURL(string(body))
+
+	if serviceErr != nil {
+		if errors.Is(serviceErr, customerrors.ErrUniqueKeyConstrantViolation) {
+			statusCode = http.StatusConflict
+		} else {
+			http.Error(res, serviceErr.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	res.Header().Set("content-type", "text/plain")
-	res.WriteHeader(http.StatusCreated)
+	res.WriteHeader(statusCode)
 	res.Write([]byte(shortURL))
 }
 

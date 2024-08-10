@@ -3,9 +3,13 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
+	customerrors "github.com/with0p/golang-url-shortener.git/internal/custom-errors"
 	"github.com/with0p/golang-url-shortener.git/internal/logger"
 )
 
@@ -22,6 +26,14 @@ func NewDBStorage(db *sql.DB) (*DBStorage, error) {
 }
 
 func initTable(db *sql.DB) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	tr, errTr := db.BeginTx(ctx, nil)
+	if errTr != nil {
+		return errTr
+	}
+
 	query := `
     CREATE TABLE IF NOT EXISTS shortener (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -29,15 +41,13 @@ func initTable(db *sql.DB) error {
         short_url_key TEXT NOT NULL
     );`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	_, err := db.ExecContext(ctx, query)
-	if err != nil {
-		logger.LogError(err)
-	}
+	db.ExecContext(ctx, query)
+	logger.LogInfo("Table shortener created successfully")
 
-	logger.LogInfo("Table %s created successfully")
-	return err
+	tr.ExecContext(ctx, `CREATE UNIQUE INDEX short_url_key_index ON shortener (short_url_key)`)
+	logger.LogInfo("Index short_url_key_index created successfully")
+
+	return tr.Commit()
 }
 
 func (storage *DBStorage) Read(shortURLKey string) (string, error) {
@@ -58,27 +68,6 @@ func (storage *DBStorage) Read(shortURLKey string) (string, error) {
 }
 
 func (storage *DBStorage) Write(shortURLKey string, fullURL string) error {
-	queryExists := `
-    SELECT EXISTS (
-        SELECT 1 
-        FROM shortener 
-        WHERE short_url_key = $1
-		);`
-
-	ctxExists, cancelExists := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancelExists()
-
-	var exists bool
-	errExists := storage.db.QueryRowContext(ctxExists, queryExists, shortURLKey).Scan(&exists)
-
-	if errExists != nil {
-		return errExists
-	}
-
-	if exists {
-		return nil
-	}
-
 	ctxInsert, cancelInsert := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancelInsert()
 
@@ -87,11 +76,21 @@ func (storage *DBStorage) Write(shortURLKey string, fullURL string) error {
     VALUES ($1, $2);`
 
 	_, errInsert := storage.db.ExecContext(ctxInsert, queryInsert, fullURL, shortURLKey)
+	if errInsert != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(errInsert, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			errInsert = customerrors.ErrUniqueKeyConstrantViolation
+		}
+	}
+
 	return errInsert
 }
 
 func (storage *DBStorage) WriteBatch(records *[]commontypes.BatchRecord) error {
-	tr, err := storage.db.Begin()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	tr, err := storage.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}

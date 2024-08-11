@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
 	customerrors "github.com/with0p/golang-url-shortener.git/internal/custom-errors"
-	"github.com/with0p/golang-url-shortener.git/internal/logger"
 )
 
 type DBStorage struct {
@@ -41,11 +40,9 @@ func initTable(db *sql.DB) error {
         short_url_key TEXT NOT NULL
     );`
 
-	db.ExecContext(ctx, query)
-	logger.LogInfo("Table shortener created successfully")
+	tr.ExecContext(ctx, query)
 
 	tr.ExecContext(ctx, `CREATE UNIQUE INDEX IF NOT EXISTS short_url_key_index ON shortener (short_url_key)`)
-	logger.LogInfo("Index short_url_key_index created successfully")
 
 	return tr.Commit()
 }

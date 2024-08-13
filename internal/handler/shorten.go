@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
 	customerrors "github.com/with0p/golang-url-shortener.git/internal/custom-errors"
@@ -58,7 +60,9 @@ func (handler *URLHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 
 	statusCode := http.StatusCreated
 
-	shortURL, serviceErr := handler.service.MakeShortURL(requstPayload.URL)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	shortURL, serviceErr := handler.service.MakeShortURL(ctx, requstPayload.URL)
 
 	if serviceErr != nil {
 		if errors.Is(serviceErr, customerrors.ErrUniqueKeyConstrantViolation) {
@@ -111,27 +115,29 @@ func (handler *URLHandler) ShortenBatch(res http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	var dataToBatch []commontypes.RecordToBatch
-	for _, r := range requestPayload {
-		dataToBatch = append(dataToBatch, commontypes.RecordToBatch{
+	dataToBatch := make([]commontypes.RecordToBatch, len(requestPayload))
+	for i, r := range requestPayload {
+		dataToBatch[i] = commontypes.RecordToBatch{
 			ID:      r.CorrelationID,
 			FullURL: r.OriginalURL,
-		})
+		}
 	}
 
-	responsePayloadData, batchError := handler.service.MakeShortURLBatch(&dataToBatch)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	responsePayloadData, batchError := handler.service.MakeShortURLBatch(ctx, dataToBatch)
 	if batchError != nil {
 		http.Error(res, batchError.Error(), http.StatusBadRequest)
 		logger.LogError(batchError)
 		return
 	}
 
-	var responsePayload []ShortenBatchResponceRecord
-	for _, r := range *responsePayloadData {
-		responsePayload = append(responsePayload, ShortenBatchResponceRecord{
+	responsePayload := make([]ShortenBatchResponceRecord, len(responsePayloadData))
+	for i, r := range responsePayloadData {
+		responsePayload[i] = ShortenBatchResponceRecord{
 			CorrelationID: r.ID,
 			ShortURL:      r.ShortURL,
-		})
+		}
 	}
 
 	response, err := json.Marshal(responsePayload)

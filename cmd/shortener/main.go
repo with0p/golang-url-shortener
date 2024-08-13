@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/with0p/golang-url-shortener.git/internal/app/initializer"
 	"github.com/with0p/golang-url-shortener.git/internal/handler"
@@ -26,7 +28,10 @@ func main() {
 		defer db.Close()
 		dataBase = db
 
-		handler, initError = initializer.InitWithDBStorage(config, dataBase)
+		ctx, cancelInitDB := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancelInitDB()
+
+		handler, initError = initializer.InitWithDBStorage(ctx, config, dataBase)
 	} else if config.FileStoragePath != "" {
 		handler, initError = initializer.InitWithLocalFileStorage(config)
 	} else {

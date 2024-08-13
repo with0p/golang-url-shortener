@@ -11,7 +11,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/with0p/golang-url-shortener.git/internal/common-types"
+	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
 	"github.com/with0p/golang-url-shortener.git/internal/config"
 	"github.com/with0p/golang-url-shortener.git/internal/mock"
 	"github.com/with0p/golang-url-shortener.git/internal/service"
@@ -28,21 +28,21 @@ func getInMemoryMocks() *URLHandler {
 
 func getHandlerGetTrueURLMock(ctrl *gomock.Controller, key string, value string) *URLHandler {
 	mockService := mock.NewMockService(ctrl)
-	mockService.EXPECT().GetTrueURL(key).Return(value, nil)
+	mockService.EXPECT().GetTrueURL(gomock.Any(), key).Return(value, nil)
 
 	return NewURLHandler(mockService)
 }
 
 func getHandlerMakeShortURLMock(ctrl *gomock.Controller, key string, value string) *URLHandler {
 	mockService := mock.NewMockService(ctrl)
-	mockService.EXPECT().MakeShortURL(key).Return(value, nil)
+	mockService.EXPECT().MakeShortURL(gomock.Any(), key).Return(value, nil)
 
 	return NewURLHandler(mockService)
 }
 
-func getHandlerMakeShortURLBatchMock(ctrl *gomock.Controller, key *[]commontypes.RecordToBatch, value *[]commontypes.BatchRecord) *URLHandler {
+func getHandlerMakeShortURLBatchMock(ctrl *gomock.Controller, key []commontypes.RecordToBatch, value []commontypes.BatchRecord) *URLHandler {
 	mockService := mock.NewMockService(ctrl)
-	mockService.EXPECT().MakeShortURLBatch(key).Return(value, nil)
+	mockService.EXPECT().MakeShortURLBatch(gomock.Any(), key).Return(value, nil)
 
 	return NewURLHandler(mockService)
 }
@@ -362,13 +362,13 @@ func TestShortenBatch(t *testing.T) {
 		method          string
 		contentType     string
 		requestPayload  string
-		trueURLsToBatch *[]commontypes.RecordToBatch
+		trueURLsToBatch []commontypes.RecordToBatch
 	}
 	type expectedData struct {
 		status           int
 		contentType      string
 		responsePayload  string
-		shortURLsBatched *[]commontypes.BatchRecord
+		shortURLsBatched []commontypes.BatchRecord
 		errorExpected    bool
 	}
 
@@ -383,7 +383,7 @@ func TestShortenBatch(t *testing.T) {
 				method:         http.MethodPost,
 				contentType:    "application/json",
 				requestPayload: `[{"correlation_id": "1","original_url": "https://practicum.yandex.fr/"},{"correlation_id": "2","original_url": "https://practicum.yandex.com/"}]`,
-				trueURLsToBatch: &[]commontypes.RecordToBatch{
+				trueURLsToBatch: []commontypes.RecordToBatch{
 					{
 						ID:      "1",
 						FullURL: "https://practicum.yandex.fr/",
@@ -398,7 +398,7 @@ func TestShortenBatch(t *testing.T) {
 				status:          http.StatusCreated,
 				contentType:     "application/json",
 				responsePayload: `[{"correlation_id":"1","short_url":"http://localhost:8080/e61c85d5"},{"correlation_id":"2","short_url":"http://localhost:8080/f17e9784"}]`,
-				shortURLsBatched: &[]commontypes.BatchRecord{
+				shortURLsBatched: []commontypes.BatchRecord{
 					{
 						ID:          "1",
 						FullURL:     "https://practicum.yandex.fr/",

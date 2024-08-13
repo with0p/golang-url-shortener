@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -16,18 +15,15 @@ type DBStorage struct {
 	db *sql.DB
 }
 
-func NewDBStorage(db *sql.DB) (*DBStorage, error) {
-	err := initTable(db)
+func NewDBStorage(ctx context.Context, db *sql.DB) (*DBStorage, error) {
+	err := initTable(ctx, db)
 	if err != nil {
 		return nil, err
 	}
 	return &DBStorage{db: db}, nil
 }
 
-func initTable(db *sql.DB) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
+func initTable(ctx context.Context, db *sql.DB) error {
 	tr, errTr := db.BeginTx(ctx, nil)
 	if errTr != nil {
 		return errTr
@@ -44,13 +40,15 @@ func initTable(db *sql.DB) error {
 
 	tr.ExecContext(ctx, `CREATE UNIQUE INDEX IF NOT EXISTS short_url_key_index ON shortener (short_url_key)`)
 
-	return tr.Commit()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return tr.Commit()
+	}
 }
 
-func (storage *DBStorage) Read(shortURLKey string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
+func (storage *DBStorage) Read(ctx context.Context, shortURLKey string) (string, error) {
 	query := `
 	SELECT full_url 
 	FROM shortener 
@@ -61,18 +59,21 @@ func (storage *DBStorage) Read(shortURLKey string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fullURL, nil
+
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+		return fullURL, nil
+	}
 }
 
-func (storage *DBStorage) Write(shortURLKey string, fullURL string) error {
-	ctxInsert, cancelInsert := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancelInsert()
-
+func (storage *DBStorage) Write(ctx context.Context, shortURLKey string, fullURL string) error {
 	queryInsert := `
     INSERT INTO shortener (full_url, short_url_key) 
     VALUES ($1, $2);`
 
-	_, errInsert := storage.db.ExecContext(ctxInsert, queryInsert, fullURL, shortURLKey)
+	_, errInsert := storage.db.ExecContext(ctx, queryInsert, fullURL, shortURLKey)
 	if errInsert != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(errInsert, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
@@ -80,32 +81,36 @@ func (storage *DBStorage) Write(shortURLKey string, fullURL string) error {
 		}
 	}
 
-	return errInsert
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return errInsert
+	}
 }
 
-func (storage *DBStorage) WriteBatch(records *[]commontypes.BatchRecord) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
+func (storage *DBStorage) WriteBatch(ctx context.Context, records []commontypes.BatchRecord) error {
 	tr, err := storage.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	for _, r := range *records {
-		ctxInsert, cancelInsert := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancelInsert()
-
+	for _, r := range records {
 		queryInsert := `
     INSERT INTO shortener (full_url, short_url_key) 
     VALUES ($1, $2);`
 
-		_, errInsert := tr.ExecContext(ctxInsert, queryInsert, r.FullURL, r.ShortURLKey)
+		_, errInsert := tr.ExecContext(ctx, queryInsert, r.FullURL, r.ShortURLKey)
 		if errInsert != nil {
 			tr.Rollback()
 			return errInsert
 		}
 	}
 
-	return tr.Commit()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return tr.Commit()
+	}
 }

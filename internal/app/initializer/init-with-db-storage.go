@@ -1,6 +1,7 @@
 package initializer
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -11,9 +12,8 @@ import (
 	"github.com/with0p/golang-url-shortener.git/internal/storage"
 )
 
-func InitWithDBStorage(config *config.Config, db *sql.DB) (*handler.URLHandler, error) {
-
-	storage, err := storage.NewDBStorage(db)
+func InitWithDBStorage(ctx context.Context, config *config.Config, db *sql.DB) (*handler.URLHandler, error) {
+	storage, err := storage.NewDBStorage(ctx, db)
 	if err != nil {
 		logger.LogError(err)
 		return nil, errors.New("cannot init db storage")

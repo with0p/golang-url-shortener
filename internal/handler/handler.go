@@ -50,7 +50,9 @@ func (handler *URLHandler) DoShortURL(res http.ResponseWriter, req *http.Request
 
 	statusCode := http.StatusCreated
 
-	shortURL, serviceErr := handler.service.MakeShortURL(string(body))
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	shortURL, serviceErr := handler.service.MakeShortURL(ctx, string(body))
 
 	if serviceErr != nil {
 		if errors.Is(serviceErr, customerrors.ErrUniqueKeyConstrantViolation) {
@@ -74,7 +76,9 @@ func (handler *URLHandler) DoGetTrueURL(res http.ResponseWriter, req *http.Reque
 
 	id := chi.URLParam(req, "id")
 
-	trueURL, error := handler.service.GetTrueURL(id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	trueURL, error := handler.service.GetTrueURL(ctx, id)
 	if error != nil {
 		http.Error(res, error.Error(), http.StatusNotFound)
 		return

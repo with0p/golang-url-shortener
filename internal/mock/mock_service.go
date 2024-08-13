@@ -5,6 +5,7 @@
 package mock
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -35,46 +36,46 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 }
 
 // GetTrueURL mocks base method.
-func (m *MockService) GetTrueURL(arg0 string) (string, error) {
+func (m *MockService) GetTrueURL(arg0 context.Context, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTrueURL", arg0)
+	ret := m.ctrl.Call(m, "GetTrueURL", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTrueURL indicates an expected call of GetTrueURL.
-func (mr *MockServiceMockRecorder) GetTrueURL(arg0 interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) GetTrueURL(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrueURL", reflect.TypeOf((*MockService)(nil).GetTrueURL), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrueURL", reflect.TypeOf((*MockService)(nil).GetTrueURL), arg0, arg1)
 }
 
 // MakeShortURL mocks base method.
-func (m *MockService) MakeShortURL(arg0 string) (string, error) {
+func (m *MockService) MakeShortURL(arg0 context.Context, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MakeShortURL", arg0)
+	ret := m.ctrl.Call(m, "MakeShortURL", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // MakeShortURL indicates an expected call of MakeShortURL.
-func (mr *MockServiceMockRecorder) MakeShortURL(arg0 interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) MakeShortURL(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeShortURL", reflect.TypeOf((*MockService)(nil).MakeShortURL), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeShortURL", reflect.TypeOf((*MockService)(nil).MakeShortURL), arg0, arg1)
 }
 
 // MakeShortURLBatch mocks base method.
-func (m *MockService) MakeShortURLBatch(arg0 *[]commontypes.RecordToBatch) (*[]commontypes.BatchRecord, error) {
+func (m *MockService) MakeShortURLBatch(arg0 context.Context, arg1 []commontypes.RecordToBatch) ([]commontypes.BatchRecord, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MakeShortURLBatch", arg0)
-	ret0, _ := ret[0].(*[]commontypes.BatchRecord)
+	ret := m.ctrl.Call(m, "MakeShortURLBatch", arg0, arg1)
+	ret0, _ := ret[0].([]commontypes.BatchRecord)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // MakeShortURLBatch indicates an expected call of MakeShortURLBatch.
-func (mr *MockServiceMockRecorder) MakeShortURLBatch(arg0 interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) MakeShortURLBatch(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeShortURLBatch", reflect.TypeOf((*MockService)(nil).MakeShortURLBatch), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeShortURLBatch", reflect.TypeOf((*MockService)(nil).MakeShortURLBatch), arg0, arg1)
 }

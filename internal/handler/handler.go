@@ -1,12 +1,10 @@
 package handler
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	customerrors "github.com/with0p/golang-url-shortener.git/internal/custom-errors"
@@ -50,9 +48,7 @@ func (handler *URLHandler) DoShortURL(res http.ResponseWriter, req *http.Request
 
 	statusCode := http.StatusCreated
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	shortURL, serviceErr := handler.service.MakeShortURL(ctx, string(body))
+	shortURL, serviceErr := handler.service.MakeShortURL(req.Context(), string(body))
 
 	if serviceErr != nil {
 		if errors.Is(serviceErr, customerrors.ErrUniqueKeyConstrantViolation) {
@@ -76,9 +72,7 @@ func (handler *URLHandler) DoGetTrueURL(res http.ResponseWriter, req *http.Reque
 
 	id := chi.URLParam(req, "id")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	trueURL, error := handler.service.GetTrueURL(ctx, id)
+	trueURL, error := handler.service.GetTrueURL(req.Context(), id)
 	if error != nil {
 		http.Error(res, error.Error(), http.StatusNotFound)
 		return
@@ -88,9 +82,7 @@ func (handler *URLHandler) DoGetTrueURL(res http.ResponseWriter, req *http.Reque
 
 func getPingDB(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		defer cancel()
-		if errCtx := db.PingContext(ctx); errCtx != nil {
+		if errCtx := db.PingContext(r.Context()); errCtx != nil {
 			logger.LogError(errCtx)
 			http.Error(w, errCtx.Error(), http.StatusInternalServerError)
 			return

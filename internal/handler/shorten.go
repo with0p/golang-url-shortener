@@ -1,12 +1,10 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
-	"time"
 
 	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
 	customerrors "github.com/with0p/golang-url-shortener.git/internal/custom-errors"
@@ -60,9 +58,7 @@ func (handler *URLHandler) Shorten(res http.ResponseWriter, req *http.Request) {
 
 	statusCode := http.StatusCreated
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	shortURL, serviceErr := handler.service.MakeShortURL(ctx, requstPayload.URL)
+	shortURL, serviceErr := handler.service.MakeShortURL(req.Context(), requstPayload.URL)
 
 	if serviceErr != nil {
 		if errors.Is(serviceErr, customerrors.ErrUniqueKeyConstrantViolation) {
@@ -123,9 +119,7 @@ func (handler *URLHandler) ShortenBatch(res http.ResponseWriter, req *http.Reque
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	responsePayloadData, batchError := handler.service.MakeShortURLBatch(ctx, dataToBatch)
+	responsePayloadData, batchError := handler.service.MakeShortURLBatch(req.Context(), dataToBatch)
 	if batchError != nil {
 		http.Error(res, batchError.Error(), http.StatusBadRequest)
 		logger.LogError(batchError)

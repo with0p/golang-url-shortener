@@ -26,8 +26,8 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		if err != nil || !token.Valid {
 			setAuth(r, w)
 		} else {
-			userId, _ := GetUserIdFromToken(cookie.Value)
-			ctx := context.WithValue(r.Context(), "userId", userId)
+			userID, _ := GetUserIdFromToken(cookie.Value)
+			ctx := context.WithValue(r.Context(), "userID", userID)
 			r = r.WithContext(ctx)
 		}
 
@@ -37,15 +37,15 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 func setAuth(r *http.Request, w http.ResponseWriter) {
 	expTime := time.Now().Add(TOKEN_EXP)
-	userId := uuid.New().String()
+	userID := uuid.New().String()
 
-	tokenString, err := GenerateJWT(userId, expTime)
+	tokenString, err := GenerateJWT(userID, expTime)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
 	}
 
-	ctx := context.WithValue(r.Context(), "userId", userId)
+	ctx := context.WithValue(r.Context(), "userID", userID)
 	r = r.WithContext(ctx)
 
 	http.SetCookie(w, &http.Cookie{

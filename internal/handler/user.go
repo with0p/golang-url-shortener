@@ -14,13 +14,13 @@ func (handler *URLHandler) GetUserRecords(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	userId, err := auth.GetUserIdFromCtx(req.Context())
+	userID, err := auth.GetUserIdFromCtx(req.Context())
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	records, error := handler.service.GetAllUserRecords(req.Context(), userId)
+	records, error := handler.service.GetAllUserRecords(req.Context(), userID)
 	if error != nil {
 		http.Error(res, error.Error(), http.StatusNotFound)
 		return

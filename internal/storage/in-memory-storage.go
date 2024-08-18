@@ -19,7 +19,7 @@ func NewInMemoryStorage(storageMap URLStorageMap) *InMemoryStorage {
 	}
 }
 
-func (storage *InMemoryStorage) Write(ctx context.Context, userId string, shortURLKey string, fullURL string) error {
+func (storage *InMemoryStorage) Write(ctx context.Context, userID string, shortURLKey string, fullURL string) error {
 	storage.urlMap[shortURLKey] = fullURL
 	select {
 	case <-ctx.Done():
@@ -29,7 +29,7 @@ func (storage *InMemoryStorage) Write(ctx context.Context, userId string, shortU
 	}
 }
 
-func (storage *InMemoryStorage) WriteBatch(ctx context.Context, userId string, records []commontypes.BatchRecord) error {
+func (storage *InMemoryStorage) WriteBatch(ctx context.Context, userID string, records []commontypes.BatchRecord) error {
 	for _, r := range records {
 		storage.urlMap[r.ShortURLKey] = r.FullURL
 	}
@@ -58,7 +58,7 @@ func (storage *InMemoryStorage) Read(ctx context.Context, shortURLKey string) (s
 
 }
 
-func (storage *InMemoryStorage) SelectAllUserRecords(ctx context.Context, userId string) ([]commontypes.UserRecordData, error) {
+func (storage *InMemoryStorage) SelectAllUserRecords(ctx context.Context, userID string) ([]commontypes.UserRecordData, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()

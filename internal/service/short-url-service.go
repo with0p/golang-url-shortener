@@ -37,13 +37,13 @@ func (s *ShortURLService) MakeShortURL(ctx context.Context, trueURL string) (str
 	}
 
 	shortURLId := generateShortURLId([]byte(trueURL))
-	userId, err := auth.GetUserIdFromCtx(ctx)
+	userID, err := auth.GetUserIdFromCtx(ctx)
 
 	if err != nil {
 		return "", err
 	}
 
-	if err := s.storage.Write(ctx, userId, shortURLId, trueURL); err != nil {
+	if err := s.storage.Write(ctx, userID, shortURLId, trueURL); err != nil {
 		if errors.Is(err, customerrors.ErrUniqueKeyConstrantViolation) {
 			return s.shortURLHost + "/" + shortURLId, err
 		}
@@ -73,21 +73,21 @@ func (s *ShortURLService) MakeShortURLBatch(ctx context.Context, recordsIn []com
 		}
 	}
 
-	userId, err := auth.GetUserIdFromCtx(ctx)
+	userID, err := auth.GetUserIdFromCtx(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if err := s.storage.WriteBatch(ctx, userId, batchData); err != nil {
+	if err := s.storage.WriteBatch(ctx, userID, batchData); err != nil {
 		return nil, errors.New("could not make Batch URL record")
 	}
 
 	return batchData, nil
 }
 
-func (s *ShortURLService) GetAllUserRecords(ctx context.Context, userId string) ([]commontypes.UserRecord, error) {
-	recordData, err := s.storage.SelectAllUserRecords(ctx, userId)
+func (s *ShortURLService) GetAllUserRecords(ctx context.Context, userID string) ([]commontypes.UserRecord, error) {
+	recordData, err := s.storage.SelectAllUserRecords(ctx, userID)
 
 	if err != nil {
 		return nil, err

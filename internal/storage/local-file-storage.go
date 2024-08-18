@@ -20,7 +20,7 @@ func NewLocalFileStorage(filePath string) (*LocalFileStorage, error) {
 	return &LocalFileStorage{filePath: filePath}, nil
 }
 
-func (storage *LocalFileStorage) Write(ctx context.Context, userId string, shortURLKey string, fullURL string) error {
+func (storage *LocalFileStorage) Write(ctx context.Context, userID string, shortURLKey string, fullURL string) error {
 	file, err := os.OpenFile(storage.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		logger.LogError(err)
@@ -28,7 +28,7 @@ func (storage *LocalFileStorage) Write(ctx context.Context, userId string, short
 	}
 	defer file.Close()
 
-	data, err := json.Marshal(localfile.NewLocalFileRecord(userId, shortURLKey, fullURL))
+	data, err := json.Marshal(localfile.NewLocalFileRecord(userID, shortURLKey, fullURL))
 	if err != nil {
 		logger.LogError(err)
 		return err
@@ -45,7 +45,7 @@ func (storage *LocalFileStorage) Write(ctx context.Context, userId string, short
 	}
 }
 
-func (storage *LocalFileStorage) WriteBatch(ctx context.Context, userId string, records []commontypes.BatchRecord) error {
+func (storage *LocalFileStorage) WriteBatch(ctx context.Context, userID string, records []commontypes.BatchRecord) error {
 	file, err := os.OpenFile(storage.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		logger.LogError(err)
@@ -56,7 +56,7 @@ func (storage *LocalFileStorage) WriteBatch(ctx context.Context, userId string, 
 	var dataToWrite []byte
 
 	for _, r := range records {
-		data, err := json.Marshal(localfile.NewLocalFileRecord(userId, r.ShortURLKey, r.FullURL))
+		data, err := json.Marshal(localfile.NewLocalFileRecord(userID, r.ShortURLKey, r.FullURL))
 		if err != nil {
 			logger.LogError(err)
 			return err
@@ -103,7 +103,7 @@ func (storage *LocalFileStorage) Read(ctx context.Context, shortURLKey string) (
 	}
 }
 
-func (storage *LocalFileStorage) SelectAllUserRecords(ctx context.Context, userId string) ([]commontypes.UserRecordData, error) {
+func (storage *LocalFileStorage) SelectAllUserRecords(ctx context.Context, userID string) ([]commontypes.UserRecordData, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()

@@ -69,12 +69,12 @@ func (storage *DBStorage) Read(ctx context.Context, shortURLKey string) (string,
 	}
 }
 
-func (storage *DBStorage) Write(ctx context.Context, userId string, shortURLKey string, fullURL string) error {
+func (storage *DBStorage) Write(ctx context.Context, userID string, shortURLKey string, fullURL string) error {
 	queryInsert := `
     INSERT INTO shortener (user_id, full_url, short_url_key) 
     VALUES ($1, $2, $3);`
 
-	_, errInsert := storage.db.ExecContext(ctx, queryInsert, userId, fullURL, shortURLKey)
+	_, errInsert := storage.db.ExecContext(ctx, queryInsert, userID, fullURL, shortURLKey)
 	if errInsert != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(errInsert, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
@@ -90,7 +90,7 @@ func (storage *DBStorage) Write(ctx context.Context, userId string, shortURLKey 
 	}
 }
 
-func (storage *DBStorage) WriteBatch(ctx context.Context, userId string, records []commontypes.BatchRecord) error {
+func (storage *DBStorage) WriteBatch(ctx context.Context, userID string, records []commontypes.BatchRecord) error {
 	tr, err := storage.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (storage *DBStorage) WriteBatch(ctx context.Context, userId string, records
     INSERT INTO shortener (user_id, full_url, short_url_key) 
     VALUES ($1, $2, $3);`
 
-		_, errInsert := tr.ExecContext(ctx, queryInsert, userId, r.FullURL, r.ShortURLKey)
+		_, errInsert := tr.ExecContext(ctx, queryInsert, userID, r.FullURL, r.ShortURLKey)
 		if errInsert != nil {
 			tr.Rollback()
 			return errInsert
@@ -116,13 +116,13 @@ func (storage *DBStorage) WriteBatch(ctx context.Context, userId string, records
 	}
 }
 
-func (storage *DBStorage) SelectAllUserRecords(ctx context.Context, userId string) ([]commontypes.UserRecordData, error) {
+func (storage *DBStorage) SelectAllUserRecords(ctx context.Context, userID string) ([]commontypes.UserRecordData, error) {
 	query := `
 	SELECT full_url, short_url_key 
 	FROM shortener 
 	WHERE user_id = $1;`
 
-	rows, err := storage.db.QueryContext(ctx, query, userId)
+	rows, err := storage.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,6 @@ func (storage *DBStorage) SelectAllUserRecords(ctx context.Context, userId strin
 		userRecordsData = append(userRecordsData, record)
 
 	}
-
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()

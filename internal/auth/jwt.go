@@ -14,9 +14,9 @@ type Claims struct {
 const SECRET_KEY = "secret_key"
 const TOKEN_EXP = time.Hour * 24
 
-func GenerateJWT(userId string, expitationTime time.Time) (string, error) {
+func GenerateJWT(userID string, expitationTime time.Time) (string, error) {
 	claims := Claims{
-		UserID: userId,
+		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expitationTime),
 		},

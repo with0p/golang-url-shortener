@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -26,8 +25,7 @@ func GetUserIdFromToken(tokenString string) (string, error) {
 }
 
 func GetUserIdFromCtx(ctx context.Context) (string, error) {
-	fmt.Println(ctx.Value("userId"))
-	userID, ok := ctx.Value("userId").(string)
+	userID, ok := ctx.Value("userID").(string)
 	if !ok {
 		return "", errors.New("no user id")
 	}

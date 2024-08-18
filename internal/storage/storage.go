@@ -8,7 +8,7 @@ import (
 
 type Storage interface {
 	Read(ctx context.Context, shortURLKey string) (string, error)
-	Write(ctx context.Context, userId string, shortURLKey string, fullURL string) error
-	WriteBatch(ctx context.Context, userId string, records []commontypes.BatchRecord) error
-	SelectAllUserRecords(ctx context.Context, userId string) ([]commontypes.UserRecordData, error)
+	Write(ctx context.Context, userID string, shortURLKey string, fullURL string) error
+	WriteBatch(ctx context.Context, userID string, records []commontypes.BatchRecord) error
+	SelectAllUserRecords(ctx context.Context, userID string) ([]commontypes.UserRecordData, error)
 }

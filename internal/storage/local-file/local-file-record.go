@@ -9,10 +9,10 @@ type LocalFileRecord struct {
 	OriginalURL string `json:"original_url"`
 }
 
-func NewLocalFileRecord(userId string, key string, value string) *LocalFileRecord {
+func NewLocalFileRecord(userID string, key string, value string) *LocalFileRecord {
 	return &LocalFileRecord{
 		UUID:        uuid.New().String(),
-		UserId:      userId,
+		UserId:      userID,
 		ShortURL:    key,
 		OriginalURL: value,
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func HandleWithAuth(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("auth_token")
 		if err != nil {

@@ -139,6 +139,11 @@ func (storage *DBStorage) SelectAllUserRecords(ctx context.Context, userID strin
 		userRecordsData = append(userRecordsData, record)
 
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()

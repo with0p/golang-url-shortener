@@ -35,6 +35,21 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 	return m.recorder
 }
 
+// GetAllUserRecords mocks base method.
+func (m *MockService) GetAllUserRecords(arg0 context.Context, arg1 string) ([]commontypes.UserRecord, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllUserRecords", arg0, arg1)
+	ret0, _ := ret[0].([]commontypes.UserRecord)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllUserRecords indicates an expected call of GetAllUserRecords.
+func (mr *MockServiceMockRecorder) GetAllUserRecords(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllUserRecords", reflect.TypeOf((*MockService)(nil).GetAllUserRecords), arg0, arg1)
+}
+
 // GetTrueURL mocks base method.
 func (m *MockService) GetTrueURL(arg0 context.Context, arg1 string) (string, error) {
 	m.ctrl.T.Helper()

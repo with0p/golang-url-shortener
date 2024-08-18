@@ -20,7 +20,7 @@ func NewLocalFileStorage(filePath string) (*LocalFileStorage, error) {
 	return &LocalFileStorage{filePath: filePath}, nil
 }
 
-func (storage *LocalFileStorage) Write(ctx context.Context, shortURLKey string, fullURL string) error {
+func (storage *LocalFileStorage) Write(ctx context.Context, userID string, shortURLKey string, fullURL string) error {
 	file, err := os.OpenFile(storage.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		logger.LogError(err)
@@ -28,7 +28,7 @@ func (storage *LocalFileStorage) Write(ctx context.Context, shortURLKey string, 
 	}
 	defer file.Close()
 
-	data, err := json.Marshal(localfile.NewLocalFileRecord(shortURLKey, fullURL))
+	data, err := json.Marshal(localfile.NewLocalFileRecord(userID, shortURLKey, fullURL))
 	if err != nil {
 		logger.LogError(err)
 		return err
@@ -45,7 +45,7 @@ func (storage *LocalFileStorage) Write(ctx context.Context, shortURLKey string, 
 	}
 }
 
-func (storage *LocalFileStorage) WriteBatch(ctx context.Context, records []commontypes.BatchRecord) error {
+func (storage *LocalFileStorage) WriteBatch(ctx context.Context, userID string, records []commontypes.BatchRecord) error {
 	file, err := os.OpenFile(storage.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		logger.LogError(err)
@@ -56,7 +56,7 @@ func (storage *LocalFileStorage) WriteBatch(ctx context.Context, records []commo
 	var dataToWrite []byte
 
 	for _, r := range records {
-		data, err := json.Marshal(localfile.NewLocalFileRecord(r.ShortURLKey, r.FullURL))
+		data, err := json.Marshal(localfile.NewLocalFileRecord(userID, r.ShortURLKey, r.FullURL))
 		if err != nil {
 			logger.LogError(err)
 			return err
@@ -100,6 +100,15 @@ func (storage *LocalFileStorage) Read(ctx context.Context, shortURLKey string) (
 		return "", ctx.Err()
 	default:
 		return fullURL, nil
+	}
+}
+
+func (storage *LocalFileStorage) SelectAllUserRecords(ctx context.Context, userID string) ([]commontypes.UserRecordData, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		return nil, nil
 	}
 }
 

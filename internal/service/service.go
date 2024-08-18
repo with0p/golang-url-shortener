@@ -10,4 +10,5 @@ type Service interface {
 	MakeShortURL(ctx context.Context, trueURL string) (string, error)
 	GetTrueURL(ctx context.Context, id string) (string, error)
 	MakeShortURLBatch(ctx context.Context, recordsIn []commontypes.RecordToBatch) ([]commontypes.BatchRecord, error)
+	GetAllUserRecords(ctx context.Context, userId string) ([]commontypes.UserRecord, error)
 }

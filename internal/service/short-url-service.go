@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/url"
 
+	"github.com/with0p/golang-url-shortener.git/internal/auth"
 	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
 	customerrors "github.com/with0p/golang-url-shortener.git/internal/custom-errors"
 	"github.com/with0p/golang-url-shortener.git/internal/storage"
@@ -36,8 +37,13 @@ func (s *ShortURLService) MakeShortURL(ctx context.Context, trueURL string) (str
 	}
 
 	shortURLId := generateShortURLId([]byte(trueURL))
+	userId, err := auth.GetUserIdFromCtx(ctx)
 
-	if err := s.storage.Write(ctx, shortURLId, trueURL); err != nil {
+	if err != nil {
+		return "", err
+	}
+
+	if err := s.storage.Write(ctx, userId, shortURLId, trueURL); err != nil {
 		if errors.Is(err, customerrors.ErrUniqueKeyConstrantViolation) {
 			return s.shortURLHost + "/" + shortURLId, err
 		}
@@ -67,11 +73,36 @@ func (s *ShortURLService) MakeShortURLBatch(ctx context.Context, recordsIn []com
 		}
 	}
 
-	if err := s.storage.WriteBatch(ctx, batchData); err != nil {
+	userId, err := auth.GetUserIdFromCtx(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.storage.WriteBatch(ctx, userId, batchData); err != nil {
 		return nil, errors.New("could not make Batch URL record")
 	}
 
 	return batchData, nil
+}
+
+func (s *ShortURLService) GetAllUserRecords(ctx context.Context, userId string) ([]commontypes.UserRecord, error) {
+	recordData, err := s.storage.SelectAllUserRecords(ctx, userId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	userRecords := make([]commontypes.UserRecord, len(recordData))
+
+	for i, data := range recordData {
+		userRecords[i] = commontypes.UserRecord{
+			ShortURL: s.shortURLHost + "/" + data.ShortURLKey,
+			FullURL:  data.FullURL,
+		}
+	}
+
+	return userRecords, nil
 }
 
 func generateShortURLId(fullURLByte []byte) string {

@@ -9,12 +9,11 @@ import (
 )
 
 // const defaultFileStoragePath = "internal/storage/local-file/local-storage.json"
-const defaultDataBaseAddress = "host=localhost port=5435 user=postgres password=1234 dbname=postgres sslmode=disable"
+// const defaultDataBaseAddress = "host=localhost port=5435 user=postgres password=1234 dbname=postgres sslmode=disable"
 const defaultHost = "localhost"
 const defaultPort = "8080"
 const defaultFileStoragePath = ""
-
-// const defaultDataBaseAddress = ""
+const defaultDataBaseAddress = ""
 
 type Config struct {
 	BaseURL         string

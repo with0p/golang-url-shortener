@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -28,6 +29,21 @@ func GetUserIDFromCtx(ctx context.Context) (string, error) {
 	userID, ok := ctx.Value(userIDKey).(string)
 	if !ok {
 		return "", errors.New("no user id")
+	}
+
+	return userID, nil
+}
+
+func GetUserIDFromCookie(r *http.Request) (string, error) {
+	cookie, cookieErr := r.Cookie("auth_token")
+	if cookieErr != nil {
+		return "", cookieErr
+	}
+
+	userID, err := GetUserIDFromToken(cookie.Value)
+
+	if err != nil {
+		return "", err
 	}
 
 	return userID, nil

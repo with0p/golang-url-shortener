@@ -28,7 +28,7 @@ func (handler *URLHandler) GetHTTPHandler(db *sql.DB) http.Handler {
 	mux.Get(`/{id}`, middlewares.UseMiddlewares(handler.DoGetTrueURL))
 	mux.Post(`/api/shorten`, middlewares.UseMiddlewares(auth.HandleWithAuth(handler.Shorten)))
 	mux.Post(`/api/shorten/batch`, middlewares.UseMiddlewares(auth.HandleWithAuth(handler.ShortenBatch)))
-	mux.Get(`/api/user/urls`, middlewares.UseMiddlewares(auth.HandleWithAuth(handler.GetUserRecords)))
+	mux.Get(`/api/user/urls`, middlewares.UseMiddlewares(handler.GetUserRecords))
 	mux.Get(`/ping`, getPingDB(db))
 
 	return mux

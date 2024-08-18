@@ -14,7 +14,7 @@ func (handler *URLHandler) GetUserRecords(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	userID, err := auth.GetUserIDFromCtx(req.Context())
+	userID, err := auth.GetUserIDFromCookie(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusUnauthorized)
 		return

@@ -2,30 +2,53 @@ package handler
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
 	"github.com/with0p/golang-url-shortener.git/internal/config"
+	"github.com/with0p/golang-url-shortener.git/internal/mock"
 	"github.com/with0p/golang-url-shortener.git/internal/service"
 	"github.com/with0p/golang-url-shortener.git/internal/storage"
 )
 
-func getConfiguration() *config.Config {
-	return config.GetConfig()
-}
-
-func getInMemoryMocks() (*URLHandler, storage.Storage) {
+func getInMemoryMocks() *URLHandler {
 	inMemoryStorage := storage.NewInMemoryStorage(map[string]string{})
-	configuration := getConfiguration()
-	service := service.NewShortURLService(inMemoryStorage, configuration.ShortURL)
+	service := service.NewShortURLService(inMemoryStorage, config.MockConfiguration.ShortURL)
 	handler := NewURLHandler(service)
 
-	return handler, inMemoryStorage
+	return handler
+}
+
+func getHandlerGetTrueURLMock(ctrl *gomock.Controller, key string, value string) *URLHandler {
+	mockService := mock.NewMockService(ctrl)
+	mockService.EXPECT().GetTrueURL(gomock.Any(), key).Return(value, nil)
+
+	return NewURLHandler(mockService)
+}
+
+func getHandlerMakeShortURLMock(ctrl *gomock.Controller, key string, value string) *URLHandler {
+	mockService := mock.NewMockService(ctrl)
+	mockService.EXPECT().MakeShortURL(gomock.Any(), key).Return(value, nil)
+
+	return NewURLHandler(mockService)
+}
+
+func getHandlerMakeShortURLBatchMock(ctrl *gomock.Controller, key []commontypes.RecordToBatch, value []commontypes.BatchRecord) *URLHandler {
+	mockService := mock.NewMockService(ctrl)
+	mockService.EXPECT().MakeShortURLBatch(gomock.Any(), key).Return(value, nil)
+
+	return NewURLHandler(mockService)
+}
+
+func getDefaultHandler() *URLHandler {
+	return getInMemoryMocks()
 }
 
 func makeRequest(method string, path string, body []byte, contentType string, router http.Handler) *http.Response {
@@ -46,6 +69,7 @@ func TestGetTrueURL(t *testing.T) {
 	type expectedData struct {
 		status         int
 		locationHeader string
+		errorExpected  bool
 	}
 
 	tests := []struct {
@@ -64,6 +88,7 @@ func TestGetTrueURL(t *testing.T) {
 			expectedData: expectedData{
 				status:         http.StatusTemporaryRedirect,
 				locationHeader: "http://github.com/with0p/golang-url-shortener.git",
+				errorExpected:  false,
 			},
 		},
 		{
@@ -77,6 +102,7 @@ func TestGetTrueURL(t *testing.T) {
 			expectedData: expectedData{
 				status:         http.StatusNotFound,
 				locationHeader: "",
+				errorExpected:  true,
 			},
 		},
 		{
@@ -90,20 +116,22 @@ func TestGetTrueURL(t *testing.T) {
 			expectedData: expectedData{
 				status:         http.StatusMethodNotAllowed,
 				locationHeader: "",
+				errorExpected:  true,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			URLHandler, storage := getInMemoryMocks()
-			router := URLHandler.GetHTTPHandler()
+			URLHandler := getDefaultHandler()
 
-			if tt.testData.shortURL != "" && tt.testData.trueURL != "" {
-				storage.Write(tt.testData.shortURL, tt.testData.trueURL)
-
+			if !tt.expectedData.errorExpected {
+				ctrl := gomock.NewController(t)
+				defer ctrl.Finish()
+				URLHandler = getHandlerGetTrueURLMock(ctrl, tt.testData.shortURL, tt.testData.trueURL)
 			}
 
+			router := URLHandler.GetHTTPHandler(nil)
 			res := makeRequest(tt.testData.method, tt.testData.endpoint, nil, "text/plain", router)
 			defer res.Body.Close()
 
@@ -118,12 +146,13 @@ func TestURLShortener(t *testing.T) {
 	type testData struct {
 		method      string
 		contentType string
-		requestBody []byte
+		trueURL     string
 	}
 	type expectedData struct {
-		status      int
-		shortURLId  string
-		contentType string
+		status        int
+		shortURL      string
+		contentType   string
+		errorExpected bool
 	}
 
 	tests := []struct {
@@ -136,12 +165,13 @@ func TestURLShortener(t *testing.T) {
 			testData: testData{
 				method:      http.MethodPost,
 				contentType: "text/plain",
-				requestBody: []byte("https://practicum.yandex.kz/"),
+				trueURL:     "https://practicum.yandex.kz/",
 			},
 			expectedData: expectedData{
-				shortURLId:  "a0c7ecc8",
-				status:      http.StatusCreated,
-				contentType: "text/plain",
+				shortURL:      "http://localhost:8080/a0c7ecc8",
+				status:        http.StatusCreated,
+				contentType:   "text/plain",
+				errorExpected: false,
 			},
 		},
 		{
@@ -149,12 +179,13 @@ func TestURLShortener(t *testing.T) {
 			testData: testData{
 				method:      http.MethodGet,
 				contentType: "text/plain",
-				requestBody: []byte("https://practicum.yandex.kz/"),
+				trueURL:     "https://practicum.yandex.kz/",
 			},
 			expectedData: expectedData{
-				shortURLId:  "",
-				status:      http.StatusMethodNotAllowed,
-				contentType: "text/plain",
+				shortURL:      "",
+				status:        http.StatusMethodNotAllowed,
+				contentType:   "text/plain",
+				errorExpected: true,
 			},
 		},
 		{
@@ -162,12 +193,13 @@ func TestURLShortener(t *testing.T) {
 			testData: testData{
 				method:      http.MethodPost,
 				contentType: "text/plain",
-				requestBody: nil,
+				trueURL:     "",
 			},
 			expectedData: expectedData{
-				shortURLId:  "",
-				status:      http.StatusBadRequest,
-				contentType: "text/plain",
+				shortURL:      "",
+				status:        http.StatusBadRequest,
+				contentType:   "text/plain",
+				errorExpected: true,
 			},
 		},
 		{
@@ -175,24 +207,29 @@ func TestURLShortener(t *testing.T) {
 			testData: testData{
 				method:      http.MethodPost,
 				contentType: "text/plain",
-				requestBody: []byte("httpspracticum.yandex.kz/"),
+				trueURL:     "httpspracticum.yandex.kz/",
 			},
 			expectedData: expectedData{
-				shortURLId:  "",
-				status:      http.StatusBadRequest,
-				contentType: "text/plain",
+				shortURL:      "",
+				status:        http.StatusBadRequest,
+				contentType:   "text/plain",
+				errorExpected: true,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			URLHandler, _ := getInMemoryMocks()
-			configuration := getConfiguration()
+			URLHandler := getDefaultHandler()
 
-			router := URLHandler.GetHTTPHandler()
+			if !tt.expectedData.errorExpected {
+				ctrl := gomock.NewController(t)
+				defer ctrl.Finish()
+				URLHandler = getHandlerMakeShortURLMock(ctrl, tt.testData.trueURL, tt.expectedData.shortURL)
+			}
 
-			res := makeRequest(tt.testData.method, "/", tt.testData.requestBody, tt.testData.contentType, router)
+			router := URLHandler.GetHTTPHandler(nil)
+			res := makeRequest(tt.testData.method, "/", []byte(tt.testData.trueURL), tt.testData.contentType, router)
 			defer res.Body.Close()
 
 			body, err := io.ReadAll(res.Body)
@@ -200,7 +237,7 @@ func TestURLShortener(t *testing.T) {
 			assert.Equal(t, tt.expectedData.status, res.StatusCode)
 
 			if tt.expectedData.status == http.StatusCreated {
-				assert.Equal(t, configuration.ShortURL+"/"+tt.expectedData.shortURLId, string(body))
+				assert.Equal(t, tt.expectedData.shortURL, string(body))
 				assert.Equal(t, tt.testData.contentType, res.Header.Get("content-type"))
 			}
 		})
@@ -208,17 +245,18 @@ func TestURLShortener(t *testing.T) {
 }
 
 func TestShorten(t *testing.T) {
-	configuration := getConfiguration()
-
 	type testData struct {
 		method         string
 		contentType    string
 		requestPayload string
+		trueURL        string
 	}
 	type expectedData struct {
 		status          int
 		contentType     string
 		responsePayload string
+		shortURL        string
+		errorExpected   bool
 	}
 
 	tests := []struct {
@@ -232,11 +270,14 @@ func TestShorten(t *testing.T) {
 				method:         http.MethodPost,
 				contentType:    "application/json",
 				requestPayload: `{"url":"https://practicum.yandex.kz/"}`,
+				trueURL:        "https://practicum.yandex.kz/",
 			},
 			expectedData: expectedData{
 				status:          http.StatusCreated,
 				contentType:     "application/json",
-				responsePayload: fmt.Sprintf(`{"result":"%s/a0c7ecc8"}`, configuration.ShortURL),
+				responsePayload: `{"result":"http://localhost:8080/a0c7ecc8"}`,
+				shortURL:        "http://localhost:8080/a0c7ecc8",
+				errorExpected:   false,
 			},
 		},
 		{
@@ -245,11 +286,14 @@ func TestShorten(t *testing.T) {
 				method:         http.MethodPost,
 				contentType:    "plain/text",
 				requestPayload: `{"url":"https://practicum.yandex.kz/"}`,
+				trueURL:        "https://practicum.yandex.kz/",
 			},
 			expectedData: expectedData{
 				status:          http.StatusBadRequest,
 				contentType:     "",
 				responsePayload: "",
+				shortURL:        "",
+				errorExpected:   true,
 			},
 		},
 		{
@@ -258,11 +302,14 @@ func TestShorten(t *testing.T) {
 				method:         http.MethodPost,
 				contentType:    "application/json",
 				requestPayload: `{"link":"https://practicum.yandex.kz/"}`,
+				trueURL:        "https://practicum.yandex.kz/",
 			},
 			expectedData: expectedData{
 				status:          http.StatusBadRequest,
 				contentType:     "",
 				responsePayload: "",
+				shortURL:        "",
+				errorExpected:   true,
 			},
 		},
 		{
@@ -270,22 +317,119 @@ func TestShorten(t *testing.T) {
 			testData: testData{
 				method:         http.MethodPost,
 				contentType:    "application/json",
-				requestPayload: `{"link":"httpracticum.yandex.kz/"}`,
+				requestPayload: `{"url":"httpracticum.yandex.kz/"}`,
+				trueURL:        "https://practicum.yandex.kz/",
 			},
 			expectedData: expectedData{
 				status:          http.StatusBadRequest,
 				contentType:     "",
 				responsePayload: "",
+				shortURL:        "",
+				errorExpected:   true,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			URLHandler, _ := getInMemoryMocks()
-			router := URLHandler.GetHTTPHandler()
+			URLHandler := getDefaultHandler()
+
+			if !tt.expectedData.errorExpected {
+				ctrl := gomock.NewController(t)
+				defer ctrl.Finish()
+				URLHandler = getHandlerMakeShortURLMock(ctrl, tt.testData.trueURL, tt.expectedData.shortURL)
+			}
+
+			router := URLHandler.GetHTTPHandler(nil)
 
 			res := makeRequest(tt.testData.method, "/api/shorten", []byte(tt.testData.requestPayload), tt.testData.contentType, router)
+			defer res.Body.Close()
+
+			body, err := io.ReadAll(res.Body)
+			require.Nil(t, err)
+			assert.Equal(t, tt.expectedData.status, res.StatusCode)
+
+			if tt.expectedData.status == http.StatusCreated {
+				assert.Equal(t, tt.expectedData.responsePayload, string(body))
+				assert.Equal(t, tt.testData.contentType, res.Header.Get("content-type"))
+			}
+		})
+	}
+}
+
+func TestShortenBatch(t *testing.T) {
+	type testData struct {
+		method          string
+		contentType     string
+		requestPayload  string
+		trueURLsToBatch []commontypes.RecordToBatch
+	}
+	type expectedData struct {
+		status           int
+		contentType      string
+		responsePayload  string
+		shortURLsBatched []commontypes.BatchRecord
+		errorExpected    bool
+	}
+
+	tests := []struct {
+		name         string
+		testData     testData
+		expectedData expectedData
+	}{
+		{
+			name: "Check correctly shortened url batch",
+			testData: testData{
+				method:         http.MethodPost,
+				contentType:    "application/json",
+				requestPayload: `[{"correlation_id": "1","original_url": "https://practicum.yandex.fr/"},{"correlation_id": "2","original_url": "https://practicum.yandex.com/"}]`,
+				trueURLsToBatch: []commontypes.RecordToBatch{
+					{
+						ID:      "1",
+						FullURL: "https://practicum.yandex.fr/",
+					},
+					{
+						ID:      "2",
+						FullURL: "https://practicum.yandex.com/",
+					},
+				},
+			},
+			expectedData: expectedData{
+				status:          http.StatusCreated,
+				contentType:     "application/json",
+				responsePayload: `[{"correlation_id":"1","short_url":"http://localhost:8080/e61c85d5"},{"correlation_id":"2","short_url":"http://localhost:8080/f17e9784"}]`,
+				shortURLsBatched: []commontypes.BatchRecord{
+					{
+						ID:          "1",
+						FullURL:     "https://practicum.yandex.fr/",
+						ShortURL:    "http://localhost:8080/e61c85d5",
+						ShortURLKey: "e61c85d5",
+					},
+					{
+						ID:          "2",
+						FullURL:     "https://practicum.yandex.com/",
+						ShortURL:    "http://localhost:8080/f17e9784",
+						ShortURLKey: "f17e9784",
+					},
+				},
+				errorExpected: false,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			URLHandler := getDefaultHandler()
+
+			if !tt.expectedData.errorExpected {
+				ctrl := gomock.NewController(t)
+				defer ctrl.Finish()
+				URLHandler = getHandlerMakeShortURLBatchMock(ctrl, tt.testData.trueURLsToBatch, tt.expectedData.shortURLsBatched)
+			}
+
+			router := URLHandler.GetHTTPHandler(nil)
+
+			res := makeRequest(tt.testData.method, "/api/shorten/batch", []byte(tt.testData.requestPayload), tt.testData.contentType, router)
 			defer res.Body.Close()
 
 			body, err := io.ReadAll(res.Body)

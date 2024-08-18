@@ -1,6 +1,11 @@
 package storage
 
-import "errors"
+import (
+	"context"
+	"errors"
+
+	commontypes "github.com/with0p/golang-url-shortener.git/internal/common-types"
+)
 
 type URLStorageMap map[string]string
 
@@ -14,19 +19,43 @@ func NewInMemoryStorage(storageMap URLStorageMap) *InMemoryStorage {
 	}
 }
 
-func (storage *InMemoryStorage) Write(key string, value string) error {
-	storage.urlMap[key] = value
-	return nil
+func (storage *InMemoryStorage) Write(ctx context.Context, shortURLKey string, fullURL string) error {
+	storage.urlMap[shortURLKey] = fullURL
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }
 
-func (storage *InMemoryStorage) Read(key string) (string, error) {
-	value, ok := storage.urlMap[key]
+func (storage *InMemoryStorage) WriteBatch(ctx context.Context, records []commontypes.BatchRecord) error {
+	for _, r := range records {
+		storage.urlMap[r.ShortURLKey] = r.FullURL
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
+}
+
+func (storage *InMemoryStorage) Read(ctx context.Context, shortURLKey string) (string, error) {
+	fullURL, ok := storage.urlMap[shortURLKey]
 
 	if !ok {
 		return "", errors.New("not found")
 	}
 
-	return value, nil
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+		return fullURL, nil
+	}
+
 }
 
 func (storage *InMemoryStorage) GetStorageSize() int {

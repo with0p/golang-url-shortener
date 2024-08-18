@@ -37,7 +37,7 @@ func (s *ShortURLService) MakeShortURL(ctx context.Context, trueURL string) (str
 	}
 
 	shortURLId := generateShortURLId([]byte(trueURL))
-	userID, err := auth.GetUserIdFromCtx(ctx)
+	userID, err := auth.GetUserIDFromCtx(ctx)
 
 	if err != nil {
 		return "", err
@@ -73,7 +73,7 @@ func (s *ShortURLService) MakeShortURLBatch(ctx context.Context, recordsIn []com
 		}
 	}
 
-	userID, err := auth.GetUserIdFromCtx(ctx)
+	userID, err := auth.GetUserIDFromCtx(ctx)
 
 	if err != nil {
 		return nil, err

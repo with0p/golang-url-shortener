@@ -7,11 +7,11 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-func GetUserIdFromToken(tokenString string) (string, error) {
+func GetUserIDFromToken(tokenString string) (string, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {
-			return []byte(SECRET_KEY), nil
+			return []byte(secretKey), nil
 		})
 	if err != nil {
 		return "", err
@@ -24,8 +24,8 @@ func GetUserIdFromToken(tokenString string) (string, error) {
 	return claims.UserID, nil
 }
 
-func GetUserIdFromCtx(ctx context.Context) (string, error) {
-	userID, ok := ctx.Value("userID").(string)
+func GetUserIDFromCtx(ctx context.Context) (string, error) {
+	userID, ok := ctx.Value(userIDKey).(string)
 	if !ok {
 		return "", errors.New("no user id")
 	}

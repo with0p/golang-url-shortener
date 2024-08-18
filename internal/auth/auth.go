@@ -13,39 +13,41 @@ func HandleWithAuth(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("auth_token")
 		if err != nil {
-			setAuth(r, w)
-			next.ServeHTTP(w, r)
+			req, wr := setAuth(r, w)
+			next.ServeHTTP(wr, req)
 			return
 		}
 
 		claims := &Claims{}
 		token, err := jwt.ParseWithClaims(cookie.Value, claims, func(t *jwt.Token) (interface{}, error) {
-			return []byte(SECRET_KEY), nil
+			return []byte(secretKey), nil
 		})
 
+		var req *http.Request
+		var wr http.ResponseWriter
 		if err != nil || !token.Valid {
-			setAuth(r, w)
+			req, wr = setAuth(r, w)
 		} else {
-			userID, _ := GetUserIdFromToken(cookie.Value)
-			ctx := context.WithValue(r.Context(), "userID", userID)
-			r = r.WithContext(ctx)
+			userID, _ := GetUserIDFromToken(cookie.Value)
+			ctx := context.WithValue(r.Context(), userIDKey, userID)
+			req = r.WithContext(ctx)
 		}
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(wr, req)
 	})
 }
 
-func setAuth(r *http.Request, w http.ResponseWriter) {
-	expTime := time.Now().Add(TOKEN_EXP)
+func setAuth(r *http.Request, w http.ResponseWriter) (*http.Request, http.ResponseWriter) {
+	expTime := time.Now().Add(tokenExp)
 	userID := uuid.New().String()
 
 	tokenString, err := GenerateJWT(userID, expTime)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
-		return
+		return nil, nil
 	}
 
-	ctx := context.WithValue(r.Context(), "userID", userID)
+	ctx := context.WithValue(r.Context(), userIDKey, userID)
 	r = r.WithContext(ctx)
 
 	http.SetCookie(w, &http.Cookie{
@@ -57,4 +59,6 @@ func setAuth(r *http.Request, w http.ResponseWriter) {
 	})
 
 	w.Header().Set("Authorization", "Bearer "+tokenString)
+
+	return r, w
 }

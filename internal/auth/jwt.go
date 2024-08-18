@@ -11,8 +11,11 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-const SECRET_KEY = "secret_key"
-const TOKEN_EXP = time.Hour * 24
+type contextUserIDKey string
+
+const userIDKey contextUserIDKey = "userID"
+const secretKey = "secret_key"
+const tokenExp = time.Hour * 24
 
 func GenerateJWT(userID string, expitationTime time.Time) (string, error) {
 	claims := Claims{
@@ -23,7 +26,7 @@ func GenerateJWT(userID string, expitationTime time.Time) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(SECRET_KEY))
+	tokenString, err := token.SignedString([]byte(secretKey))
 	if err != nil {
 		return "", err
 	}

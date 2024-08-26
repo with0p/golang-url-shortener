@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/with0p/golang-url-shortener.git/internal/auth"
 	customerrors "github.com/with0p/golang-url-shortener.git/internal/custom-errors"
 	"github.com/with0p/golang-url-shortener.git/internal/logger"
 	"github.com/with0p/golang-url-shortener.git/internal/middlewares"
@@ -23,10 +24,12 @@ func NewURLHandler(currentService service.Service) *URLHandler {
 
 func (handler *URLHandler) GetHTTPHandler(db *sql.DB) http.Handler {
 	mux := chi.NewRouter()
-	mux.Post(`/`, middlewares.UseMiddlewares(handler.DoShortURL))
+	mux.Post(`/`, middlewares.UseMiddlewares(auth.HandleWithAuth(handler.DoShortURL)))
 	mux.Get(`/{id}`, middlewares.UseMiddlewares(handler.DoGetTrueURL))
-	mux.Post(`/api/shorten`, middlewares.UseMiddlewares(handler.Shorten))
-	mux.Post(`/api/shorten/batch`, middlewares.UseMiddlewares(handler.ShortenBatch))
+	mux.Post(`/api/shorten`, middlewares.UseMiddlewares(auth.HandleWithAuth(handler.Shorten)))
+	mux.Post(`/api/shorten/batch`, middlewares.UseMiddlewares(auth.HandleWithAuth(handler.ShortenBatch)))
+	mux.Delete(`/api/user/urls`, middlewares.UseMiddlewares(handler.DeleteURLs))
+	mux.Get(`/api/user/urls`, middlewares.UseMiddlewares(handler.GetUserRecords))
 	mux.Get(`/ping`, getPingDB(db))
 
 	return mux
@@ -74,8 +77,13 @@ func (handler *URLHandler) DoGetTrueURL(res http.ResponseWriter, req *http.Reque
 
 	trueURL, error := handler.service.GetTrueURL(req.Context(), id)
 	if error != nil {
-		http.Error(res, error.Error(), http.StatusNotFound)
-		return
+		if errors.Is(error, customerrors.ErrRecordHasBeenDeleted) {
+			res.WriteHeader(http.StatusGone)
+			return
+		} else {
+			http.Error(res, error.Error(), http.StatusNotFound)
+			return
+		}
 	}
 	http.Redirect(res, req, trueURL, http.StatusTemporaryRedirect)
 }

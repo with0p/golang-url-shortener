@@ -8,6 +8,9 @@ import (
 
 type Storage interface {
 	Read(ctx context.Context, shortURLKey string) (string, error)
-	Write(ctx context.Context, shortURLKey string, fullURL string) error
-	WriteBatch(ctx context.Context, records []commontypes.BatchRecord) error
+	ReadUserID(ctx context.Context, shortURLKey string) (string, error)
+	Write(ctx context.Context, userID string, shortURLKey string, fullURL string) error
+	WriteBatch(ctx context.Context, userID string, records []commontypes.BatchRecord) error
+	SelectAllUserRecords(ctx context.Context, userID string) ([]commontypes.UserRecordData, error)
+	MarkAsDeleted(ctx context.Context, shortURLKeys []string) error
 }

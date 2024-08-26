@@ -34,7 +34,8 @@ func initTable(ctx context.Context, db *sql.DB) error {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		user_id TEXT NOT NULL,
         full_url TEXT NOT NULL,
-        short_url_key TEXT NOT NULL
+        short_url_key TEXT NOT NULL,
+		is_deleted BOOL DEFAULT FALSE
     );`
 
 	tr.ExecContext(ctx, query)
@@ -51,14 +52,17 @@ func initTable(ctx context.Context, db *sql.DB) error {
 
 func (storage *DBStorage) Read(ctx context.Context, shortURLKey string) (string, error) {
 	query := `
-	SELECT full_url 
+	SELECT full_url, is_deleted 
 	FROM shortener 
 	WHERE short_url_key = $1;`
 
 	var fullURL string
-	err := storage.db.QueryRowContext(ctx, query, shortURLKey).Scan(&fullURL)
+	var isDeleted bool
+	err := storage.db.QueryRowContext(ctx, query, shortURLKey).Scan(&fullURL, &isDeleted)
 	if err != nil {
 		return "", err
+	} else if isDeleted {
+		return "", customerrors.ErrRecordHasBeenDeleted
 	}
 
 	select {
@@ -66,6 +70,25 @@ func (storage *DBStorage) Read(ctx context.Context, shortURLKey string) (string,
 		return "", ctx.Err()
 	default:
 		return fullURL, nil
+	}
+}
+
+func (storage *DBStorage) ReadUserID(ctx context.Context, shortURLKey string) (string, error) {
+	query := `
+	SELECT user_id 
+	FROM shortener 
+	WHERE short_url_key = $1;`
+
+	var userID string
+	err := storage.db.QueryRowContext(ctx, query, shortURLKey).Scan(&userID)
+	if err != nil {
+		return "", err
+	}
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+		return userID, nil
 	}
 }
 
@@ -149,5 +172,33 @@ func (storage *DBStorage) SelectAllUserRecords(ctx context.Context, userID strin
 		return nil, ctx.Err()
 	default:
 		return userRecordsData, nil
+	}
+}
+
+func (storage *DBStorage) MarkAsDeleted(ctx context.Context, shortURLKeys []string) error {
+	tr, err := storage.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, key := range shortURLKeys {
+
+		queryUpdate := `
+    	UPDATE shortener
+		SET is_deleted = true
+		WHERE short_url_key = $1;`
+
+		_, errUpdate := tr.ExecContext(ctx, queryUpdate, key)
+		if errUpdate != nil {
+			tr.Rollback()
+			return errUpdate
+		}
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return tr.Commit()
 	}
 }

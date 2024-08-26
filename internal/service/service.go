@@ -11,4 +11,5 @@ type Service interface {
 	GetTrueURL(ctx context.Context, id string) (string, error)
 	MakeShortURLBatch(ctx context.Context, recordsIn []commontypes.RecordToBatch) ([]commontypes.BatchRecord, error)
 	GetAllUserRecords(ctx context.Context, userID string) ([]commontypes.UserRecord, error)
+	DeleteUserURLs(userID string, shortURLKeys []string)
 }

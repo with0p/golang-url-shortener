@@ -112,6 +112,24 @@ func (storage *LocalFileStorage) SelectAllUserRecords(ctx context.Context, userI
 	}
 }
 
+func (storage *LocalFileStorage) ReadUserID(ctx context.Context, shortURLKey string) (string, error) {
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+		return "", nil
+	}
+}
+
+func (storage *LocalFileStorage) MarkAsDeleted(ctx context.Context, shortURLKeys []string) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
+}
+
 func readFileToMap(file *os.File) (map[string]string, error) {
 	fileData := map[string]string{}
 

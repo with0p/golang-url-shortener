@@ -66,3 +66,21 @@ func (storage *InMemoryStorage) SelectAllUserRecords(ctx context.Context, userID
 		return nil, nil
 	}
 }
+
+func (storage *InMemoryStorage) ReadUserID(ctx context.Context, shortURLKey string) (string, error) {
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+		return "", nil
+	}
+}
+
+func (storage *InMemoryStorage) MarkAsDeleted(ctx context.Context, shortURLKeys []string) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
+}

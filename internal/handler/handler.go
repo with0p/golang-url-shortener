@@ -28,6 +28,7 @@ func (handler *URLHandler) GetHTTPHandler(db *sql.DB) http.Handler {
 	mux.Get(`/{id}`, middlewares.UseMiddlewares(handler.DoGetTrueURL))
 	mux.Post(`/api/shorten`, middlewares.UseMiddlewares(auth.HandleWithAuth(handler.Shorten)))
 	mux.Post(`/api/shorten/batch`, middlewares.UseMiddlewares(auth.HandleWithAuth(handler.ShortenBatch)))
+	mux.Delete(`/api/user/urls`, middlewares.UseMiddlewares(handler.DeleteURLs))
 	mux.Get(`/api/user/urls`, middlewares.UseMiddlewares(handler.GetUserRecords))
 	mux.Get(`/ping`, getPingDB(db))
 
@@ -76,8 +77,13 @@ func (handler *URLHandler) DoGetTrueURL(res http.ResponseWriter, req *http.Reque
 
 	trueURL, error := handler.service.GetTrueURL(req.Context(), id)
 	if error != nil {
-		http.Error(res, error.Error(), http.StatusNotFound)
-		return
+		if errors.Is(error, customerrors.ErrRecordHasBeenDeleted) {
+			res.WriteHeader(http.StatusGone)
+			return
+		} else {
+			http.Error(res, error.Error(), http.StatusNotFound)
+			return
+		}
 	}
 	http.Redirect(res, req, trueURL, http.StatusTemporaryRedirect)
 }
